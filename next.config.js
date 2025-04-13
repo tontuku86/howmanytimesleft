@@ -6,6 +6,11 @@ const nextConfig = {
   images: {
     unoptimized: true
   },
+  experimental: {
+    // Next.js 14互換モードを有効にする
+    serverComponentsExternalPackages: [],
+    useNextHeaders: false
+  }
 };
 
 module.exports = nextConfig; 
