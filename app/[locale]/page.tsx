@@ -6,37 +6,6 @@ import Calculator from '../components/Calculator';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import { useTranslation } from 'react-i18next';
 import '../i18n/client';
-import { Metadata } from 'next';
-import { localeMetadata } from './metadata';
-
-type PageProps = {
-  params: {
-    locale: string;
-  }
-}
-
-// 動的メタデータ生成
-export const generateMetadata = ({ params }: PageProps): Metadata => {
-  const locale = params.locale as keyof typeof localeMetadata;
-  
-  // localeMetadataから言語に対応するメタデータを取得
-  // 対応する言語がない場合はjaのメタデータをデフォルトとして使用
-  const metadata = localeMetadata[locale] || localeMetadata.ja;
-  
-  return {
-    title: metadata.title,
-    description: metadata.description,
-    keywords: metadata.keywords,
-    openGraph: {
-      title: metadata.title,
-      description: metadata.ogDescription,
-    },
-    twitter: {
-      title: metadata.title,
-      description: metadata.twitterDescription,
-    },
-  };
-};
 
 export default function Home() {
   const params = useParams();
