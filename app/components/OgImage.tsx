@@ -33,35 +33,22 @@ export default function OgImage({ count, activity, language, onImageGenerated, p
         canvas.width = width;
         canvas.height = height;
         
-        // 背景グラデーション
-        const gradient = ctx.createLinearGradient(0, 0, width, height);
+        // 背景グラデーション - よりシンプルな直線グラデーション
+        const gradient = ctx.createLinearGradient(0, 0, 0, height);
         gradient.addColorStop(0, '#4F46E5');  // indigo-600
         gradient.addColorStop(1, '#4338CA');  // indigo-700
         ctx.fillStyle = gradient;
         ctx.fillRect(0, 0, width, height);
         
-        // デコレーション要素の追加
-        ctx.fillStyle = 'rgba(129, 140, 248, 0.3)';
-        ctx.beginPath();
-        ctx.arc(width * 0.2, height * 0.2, width * 0.4, 0, Math.PI * 2);
-        ctx.fill();
-        
-        // タイトル
-        const title = getLanguageTitle();
-        ctx.font = 'bold 60px sans-serif';
+        // 結果テキスト
+        const resultText = getLanguageText();
+        ctx.font = 'bold 80px sans-serif';
         ctx.textAlign = 'center';
         ctx.fillStyle = 'white';
         ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
         ctx.shadowBlur = 10;
         ctx.shadowOffsetX = 2;
         ctx.shadowOffsetY = 2;
-        ctx.fillText(title, width / 2, height * 0.25);
-        
-        // 結果テキスト
-        const resultText = getLanguageText();
-        ctx.font = 'bold 72px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillStyle = 'white';
         
         // 長いテキストを複数行に分割
         const maxLineWidth = width * 0.8;
@@ -85,17 +72,17 @@ export default function OgImage({ count, activity, language, onImageGenerated, p
         } 
         // 日本語と中国語は文字数で分割
         else {
-          const charsPerLine = language === 'zh' ? 12 : 14;
+          const charsPerLine = language === 'zh' ? 15 : 18;
           for (let i = 0; i < resultText.length; i += charsPerLine) {
             lines.push(resultText.substr(i, charsPerLine));
           }
         }
         
-        // 複数行のテキストを描画
-        const lineHeight = 90;
-        let yPos = height * 0.4;
+        // 複数行のテキストを描画 - 中央上部に配置
+        const lineHeight = 100;
+        let yPos = height * 0.3;
         if (lines.length > 1) {
-          yPos = height * 0.4 - ((lines.length - 1) * lineHeight) / 2;
+          yPos = height * 0.3 - ((lines.length - 1) * lineHeight) / 2;
         }
         
         for (let i = 0; i < lines.length; i++) {
@@ -108,32 +95,36 @@ export default function OgImage({ count, activity, language, onImageGenerated, p
           const remainingText = language === 'en' ? 'Remaining' : 
                              language === 'zh' ? '剩余比例' : '残り割合';
           
-          ctx.font = 'normal 28px sans-serif';
+          // 影の設定を解除
+          ctx.shadowBlur = 0;
+          ctx.shadowOffsetX = 0;
+          ctx.shadowOffsetY = 0;
+          
+          ctx.font = 'normal 32px sans-serif';
           ctx.textAlign = 'left';
           ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-          ctx.shadowBlur = 0;
-          ctx.fillText(remainingText, width * 0.25, height * 0.65);
+          ctx.fillText(remainingText, width * 0.2, height * 0.55);
           
           // パーセンテージ値
           const percentageValue = Math.round(100 - percentage) + '%';
           ctx.textAlign = 'right';
-          ctx.fillText(percentageValue, width * 0.75, height * 0.65);
+          ctx.fillText(percentageValue, width * 0.8, height * 0.55);
           
           // プログレスバー背景
           ctx.fillStyle = 'rgba(75, 85, 99, 0.4)';
-          const barWidth = width * 0.5;
-          const barHeight = 16;
-          const barX = width * 0.25;
-          const barY = height * 0.68;
+          const barWidth = width * 0.6;
+          const barHeight = 24;
+          const barX = width * 0.2;
+          const barY = height * 0.6;
           ctx.beginPath();
-          ctx.roundRect(barX, barY, barWidth, barHeight, 8);
+          ctx.roundRect(barX, barY, barWidth, barHeight, 12);
           ctx.fill();
           
           // プログレスバー前景（進捗部分）
           ctx.fillStyle = 'rgba(129, 140, 248, 0.9)';
           const progressWidth = barWidth * ((100 - percentage) / 100);
           ctx.beginPath();
-          ctx.roundRect(barX, barY, progressWidth, barHeight, 8);
+          ctx.roundRect(barX, barY, progressWidth, barHeight, 12);
           ctx.fill();
           
           // 総回数情報
@@ -141,10 +132,10 @@ export default function OgImage({ count, activity, language, onImageGenerated, p
             const totalText = language === 'en' ? `Total ${totalPossible} times in lifetime` : 
                           language === 'zh' ? `一生总共${totalPossible}次` : `生涯で合計${totalPossible}回`;
             
-            ctx.font = 'normal 24px sans-serif';
+            ctx.font = 'normal 28px sans-serif';
             ctx.textAlign = 'center';
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
-            ctx.fillText(totalText, width / 2, height * 0.73);
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+            ctx.fillText(totalText, width / 2, height * 0.7);
           }
         }
         
@@ -190,14 +181,6 @@ export default function OgImage({ count, activity, language, onImageGenerated, p
       }
     }
   }, [count, activity, language, onImageGenerated, percentage, totalPossible]);
-
-  const getLanguageTitle = () => {
-    switch(language) {
-      case 'en': return 'How Many Times Left?';
-      case 'zh': return '还剩几次？';
-      default: return 'あと何回？';
-    }
-  };
 
   const getLanguageText = () => {
     switch(language) {
