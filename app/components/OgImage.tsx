@@ -1,26 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import html2canvas from 'html2canvas';
-
-// html2canvasの型定義を拡張
-interface Html2CanvasOptions {
-  scale?: number;
-  useCORS?: boolean;
-  backgroundColor?: string;
-  logging?: boolean;
-  allowTaint?: boolean;
-  foreignObjectRendering?: boolean;
-  width?: number;
-  height?: number;
-  windowWidth?: number;
-  windowHeight?: number;
-  x?: number;
-  y?: number;
-  scrollX?: number;
-  scrollY?: number;
-  proxy?: string;
-}
+import { useEffect, useRef } from 'react';
 
 interface OgImageProps {
   count: number;
@@ -30,105 +10,141 @@ interface OgImageProps {
 }
 
 export default function OgImage({ count, activity, language, onImageGenerated }: OgImageProps) {
-  const ogRef = useRef<HTMLDivElement>(null);
-  const [attempts, setAttempts] = useState(0);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    // 5回までの再試行を許可
-    if (attempts > 5) {
-      console.error('OgImage: Maximum attempts reached');
-      return;
-    }
-
-    if (ogRef.current && onImageGenerated) {
-      console.log('OgImage: Generating image for', activity, count, language, 'attempt:', attempts + 1);
+    if (canvasRef.current && onImageGenerated) {
+      console.log('OgImage: Creating image directly with canvas for', activity, count, language);
       
-      // DOMが完全にレンダリングされるまで待つ（時間を長めに）
-      const timer = setTimeout(() => {
-        if (!ogRef.current) return;
+      try {
+        const canvas = canvasRef.current;
+        const ctx = canvas.getContext('2d');
         
-        const options: Html2CanvasOptions = {
-          scale: 1.5, // 高解像度を維持しつつ、サイズ適正化
-          useCORS: true, 
-          backgroundColor: '#4F46E5', // 背景色をindigo-600に設定
-          logging: true, // デバッグ用ロギングを有効化
-          allowTaint: true, // 外部リソースの使用を許可
-          foreignObjectRendering: false, // トラブルシューティングのため無効化
-          width: 1200, // 明示的に幅を指定
-          height: 630, // 明示的に高さを指定
-          scrollX: 0, // スクロール位置を設定
-          scrollY: 0
-        };
-        
-        try {
-          html2canvas(ogRef.current, options)
-            .then(canvas => {
-              try {
-                // キャンバス情報をログ出力
-                console.log('OgImage: Canvas created', {
-                  width: canvas.width,
-                  height: canvas.height,
-                  context: canvas.getContext('2d') ? 'available' : 'not available'
-                });
-                
-                // 複数の方法でDataURLを試行
-                let dataUrl = '';
-                try {
-                  // 方法1: 標準的なtoDataURL
-                  dataUrl = canvas.toDataURL('image/png');
-                } catch (e) {
-                  console.error('OgImage: Standard toDataURL failed', e);
-                  try {
-                    // 方法2: 品質パラメータ付きtoDataURL
-                    dataUrl = canvas.toDataURL('image/png', 0.8);
-                  } catch (e2) {
-                    console.error('OgImage: Quality param toDataURL failed', e2);
-                    try {
-                      // 方法3: JPEGフォーマットを試す
-                      dataUrl = canvas.toDataURL('image/jpeg', 0.8);
-                    } catch (e3) {
-                      console.error('OgImage: JPEG toDataURL failed', e3);
-                    }
-                  }
-                }
-                
-                if (dataUrl && dataUrl.length > 100) {
-                  console.log('OgImage: Image generated successfully', { 
-                    canvasWidth: canvas.width,
-                    canvasHeight: canvas.height,
-                    dataUrlLength: dataUrl.length,
-                    dataUrlStartsWith: dataUrl.substring(0, 30) + '...'
-                  });
-                  onImageGenerated(dataUrl);
-                } else {
-                  console.error('OgImage: Generated dataUrl is invalid', { 
-                    length: dataUrl?.length || 0,
-                    startsWith: dataUrl?.substring(0, 30) || 'empty'
-                  });
-                  // 再試行
-                  setAttempts(prev => prev + 1);
-                }
-              } catch (err) {
-                console.error('OgImage: Error processing canvas', err);
-                // 再試行
-                setAttempts(prev => prev + 1);
-              }
-            })
-            .catch(error => {
-              console.error('OgImage: Error generating image with html2canvas', error);
-              // 再試行
-              setAttempts(prev => prev + 1);
-            });
-        } catch (error) {
-          console.error('OgImage: Exception during html2canvas call', error);
-          // 再試行
-          setAttempts(prev => prev + 1);
+        if (!ctx) {
+          console.error('OgImage: Could not get 2D context');
+          return;
         }
-      }, 800); // より長い遅延を追加（800ms）
-      
-      return () => clearTimeout(timer);
+        
+        // キャンバスサイズ設定
+        const width = 1200;
+        const height = 630;
+        canvas.width = width;
+        canvas.height = height;
+        
+        // 背景グラデーション
+        const gradient = ctx.createLinearGradient(0, 0, width, height);
+        gradient.addColorStop(0, '#4F46E5');  // indigo-600
+        gradient.addColorStop(1, '#4338CA');  // indigo-700
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, width, height);
+        
+        // デコレーション要素の追加
+        ctx.fillStyle = 'rgba(129, 140, 248, 0.3)';
+        ctx.beginPath();
+        ctx.arc(width * 0.2, height * 0.2, width * 0.4, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // タイトル
+        const title = getLanguageTitle();
+        ctx.font = 'bold 60px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = 'white';
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+        ctx.shadowBlur = 10;
+        ctx.shadowOffsetX = 2;
+        ctx.shadowOffsetY = 2;
+        ctx.fillText(title, width / 2, height * 0.3);
+        
+        // 結果テキスト
+        const resultText = getLanguageText();
+        ctx.font = 'bold 72px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = 'white';
+        
+        // 長いテキストを複数行に分割
+        const maxLineWidth = width * 0.8;
+        const words = resultText.split(' ');
+        let currentLine = '';
+        let lines = [];
+        
+        // 英語と中国語の場合は単語分割
+        if (language === 'en') {
+          for (let i = 0; i < words.length; i++) {
+            const testLine = currentLine + words[i] + ' ';
+            const metrics = ctx.measureText(testLine);
+            if (metrics.width > maxLineWidth && i > 0) {
+              lines.push(currentLine);
+              currentLine = words[i] + ' ';
+            } else {
+              currentLine = testLine;
+            }
+          }
+          if (currentLine) lines.push(currentLine);
+        } 
+        // 日本語と中国語は文字数で分割
+        else {
+          const charsPerLine = language === 'zh' ? 12 : 14;
+          for (let i = 0; i < resultText.length; i += charsPerLine) {
+            lines.push(resultText.substr(i, charsPerLine));
+          }
+        }
+        
+        // 複数行のテキストを描画
+        const lineHeight = 90;
+        let yPos = height * 0.5;
+        if (lines.length > 1) {
+          yPos = height * 0.5 - ((lines.length - 1) * lineHeight) / 2;
+        }
+        
+        for (let i = 0; i < lines.length; i++) {
+          ctx.fillText(lines[i], width / 2, yPos + i * lineHeight);
+        }
+        
+        // ハッシュタグ（オプション）
+        ctx.font = '24px sans-serif';
+        ctx.textAlign = 'right';
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+        ctx.shadowBlur = 0;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
+        
+        const hashtag = language === 'en' ? '#HowManyTimesLeft' : 
+                        language === 'zh' ? '#还剩几次' : '#あと何回';
+        ctx.fillText(hashtag, width - 40, height - 40);
+        
+        // 画像をDataURLに変換して返す
+        try {
+          const dataUrl = canvas.toDataURL('image/png');
+          console.log('OgImage: Canvas image generated successfully', {
+            width: canvas.width,
+            height: canvas.height,
+            dataUrlLength: dataUrl.length
+          });
+          
+          if (dataUrl && dataUrl.length > 100) {
+            onImageGenerated(dataUrl);
+          } else {
+            console.error('OgImage: Invalid dataUrl generated');
+          }
+        } catch (err) {
+          console.error('OgImage: Error converting canvas to dataURL', err);
+          
+          // JPEGフォーマットで再試行
+          try {
+            const jpegDataUrl = canvas.toDataURL('image/jpeg', 0.9);
+            console.log('OgImage: JPEG image generated as fallback', {
+              dataUrlLength: jpegDataUrl.length
+            });
+            onImageGenerated(jpegDataUrl);
+          } catch (jpegErr) {
+            console.error('OgImage: JPEG fallback also failed', jpegErr);
+          }
+        }
+      } catch (error) {
+        console.error('OgImage: Canvas rendering error', error);
+      }
     }
-  }, [count, activity, language, onImageGenerated, attempts]);
+  }, [count, activity, language, onImageGenerated]);
 
   const getLanguageTitle = () => {
     switch(language) {
@@ -146,88 +162,13 @@ export default function OgImage({ count, activity, language, onImageGenerated }:
     }
   };
 
-  console.log('OgImage: Rendering component', { count, activity, language });
-
   return (
-    <div
-      ref={ogRef}
-      style={{
-        width: '1200px',
-        height: '630px',
-        position: 'relative',
-        backgroundColor: '#4F46E5', // indigo-600
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        color: 'white',
-        fontFamily: 'sans-serif',
-        padding: '40px',
-        overflow: 'hidden'
-      }}
-    >
-      <div
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          width: '100%',
-          height: '100%',
-          backgroundImage: 'radial-gradient(circle at 20% 20%, rgba(129, 140, 248, 0.6), transparent)',
-          zIndex: '1'
-        }}
+    <div className="hidden">
+      <canvas 
+        ref={canvasRef} 
+        width="1200" 
+        height="630"
       />
-      
-      <h1
-        style={{
-          fontSize: '72px',
-          fontWeight: 'bold',
-          marginBottom: '20px',
-          textAlign: 'center',
-          zIndex: '2',
-          textShadow: '0 4px 8px rgba(0, 0, 0, 0.2)'
-        }}
-      >
-        {getLanguageTitle()}
-      </h1>
-      
-      <p
-        style={{
-          fontSize: '96px',
-          fontWeight: 'bold',
-          maxWidth: '80%',
-          textAlign: 'center',
-          lineHeight: 1.3,
-          zIndex: '2',
-          textShadow: '0 4px 8px rgba(0, 0, 0, 0.2)'
-        }}
-      >
-        {getLanguageText()}
-      </p>
-      
-      <div
-        style={{
-          position: 'absolute',
-          bottom: '40px',
-          left: '0',
-          width: '100%',
-          padding: '0 40px',
-          display: 'flex',
-          justifyContent: 'flex-end',
-          alignItems: 'center',
-          zIndex: '2'
-        }}
-      >
-        <div
-          style={{
-            fontSize: '24px',
-            opacity: 0.8,
-            display: 'none'
-          }}
-        >
-          #HowManyTimesLeft
-        </div>
-      </div>
     </div>
   );
 } 
