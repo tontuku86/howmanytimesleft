@@ -1,8 +1,14 @@
 import { ReactNode } from 'react';
 
-export default function LocaleLayout({ children, params }: { children: ReactNode; params: { locale: string } }) {
+export default function LocaleLayout({
+  children,
+  params: { locale },
+}: {
+  children: ReactNode;
+  params: { locale: string };
+}) {
   return (
-    <div lang={params.locale} className="locale-container">
+    <div lang={locale} className="locale-container">
       {children}
     </div>
   );
