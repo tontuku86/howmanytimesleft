@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import html2canvas from 'html2canvas';
 
 // html2canvasの型定義を拡張
@@ -11,6 +11,15 @@ interface Html2CanvasOptions {
   logging?: boolean;
   allowTaint?: boolean;
   foreignObjectRendering?: boolean;
+  width?: number;
+  height?: number;
+  windowWidth?: number;
+  windowHeight?: number;
+  x?: number;
+  y?: number;
+  scrollX?: number;
+  scrollY?: number;
+  proxy?: string;
 }
 
 interface OgImageProps {
@@ -22,40 +31,104 @@ interface OgImageProps {
 
 export default function OgImage({ count, activity, language, onImageGenerated }: OgImageProps) {
   const ogRef = useRef<HTMLDivElement>(null);
+  const [attempts, setAttempts] = useState(0);
 
   useEffect(() => {
+    // 5回までの再試行を許可
+    if (attempts > 5) {
+      console.error('OgImage: Maximum attempts reached');
+      return;
+    }
+
     if (ogRef.current && onImageGenerated) {
-      console.log('OgImage: Generating image for', activity, count, language);
+      console.log('OgImage: Generating image for', activity, count, language, 'attempt:', attempts + 1);
       
-      // DOMが完全にレンダリングされるまで少し待つ
-      setTimeout(() => {
+      // DOMが完全にレンダリングされるまで待つ（時間を長めに）
+      const timer = setTimeout(() => {
         if (!ogRef.current) return;
         
-        html2canvas(ogRef.current, { 
-          scale: 2, // 高品質化のためスケールを上げる
+        const options: Html2CanvasOptions = {
+          scale: 1.5, // 高解像度を維持しつつ、サイズ適正化
           useCORS: true, 
           backgroundColor: '#4F46E5', // 背景色をindigo-600に設定
           logging: true, // デバッグ用ロギングを有効化
           allowTaint: true, // 外部リソースの使用を許可
-          foreignObjectRendering: true // 可能であればforeign objectレンダリングを使用
-        } as Html2CanvasOptions).then(canvas => {
-          try {
-            const dataUrl = canvas.toDataURL('image/png');
-            console.log('OgImage: Image generated successfully', { 
-              canvasWidth: canvas.width,
-              canvasHeight: canvas.height,
-              dataUrlLength: dataUrl.length
+          foreignObjectRendering: false, // トラブルシューティングのため無効化
+          width: 1200, // 明示的に幅を指定
+          height: 630, // 明示的に高さを指定
+          scrollX: 0, // スクロール位置を設定
+          scrollY: 0
+        };
+        
+        try {
+          html2canvas(ogRef.current, options)
+            .then(canvas => {
+              try {
+                // キャンバス情報をログ出力
+                console.log('OgImage: Canvas created', {
+                  width: canvas.width,
+                  height: canvas.height,
+                  context: canvas.getContext('2d') ? 'available' : 'not available'
+                });
+                
+                // 複数の方法でDataURLを試行
+                let dataUrl = '';
+                try {
+                  // 方法1: 標準的なtoDataURL
+                  dataUrl = canvas.toDataURL('image/png');
+                } catch (e) {
+                  console.error('OgImage: Standard toDataURL failed', e);
+                  try {
+                    // 方法2: 品質パラメータ付きtoDataURL
+                    dataUrl = canvas.toDataURL('image/png', 0.8);
+                  } catch (e2) {
+                    console.error('OgImage: Quality param toDataURL failed', e2);
+                    try {
+                      // 方法3: JPEGフォーマットを試す
+                      dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+                    } catch (e3) {
+                      console.error('OgImage: JPEG toDataURL failed', e3);
+                    }
+                  }
+                }
+                
+                if (dataUrl && dataUrl.length > 100) {
+                  console.log('OgImage: Image generated successfully', { 
+                    canvasWidth: canvas.width,
+                    canvasHeight: canvas.height,
+                    dataUrlLength: dataUrl.length,
+                    dataUrlStartsWith: dataUrl.substring(0, 30) + '...'
+                  });
+                  onImageGenerated(dataUrl);
+                } else {
+                  console.error('OgImage: Generated dataUrl is invalid', { 
+                    length: dataUrl?.length || 0,
+                    startsWith: dataUrl?.substring(0, 30) || 'empty'
+                  });
+                  // 再試行
+                  setAttempts(prev => prev + 1);
+                }
+              } catch (err) {
+                console.error('OgImage: Error processing canvas', err);
+                // 再試行
+                setAttempts(prev => prev + 1);
+              }
+            })
+            .catch(error => {
+              console.error('OgImage: Error generating image with html2canvas', error);
+              // 再試行
+              setAttempts(prev => prev + 1);
             });
-            onImageGenerated(dataUrl);
-          } catch (err) {
-            console.error('OgImage: Error converting canvas to dataURL', err);
-          }
-        }).catch(error => {
-          console.error('OgImage: Error generating image', error);
-        });
-      }, 200); // 200msの遅延を追加
+        } catch (error) {
+          console.error('OgImage: Exception during html2canvas call', error);
+          // 再試行
+          setAttempts(prev => prev + 1);
+        }
+      }, 800); // より長い遅延を追加（800ms）
+      
+      return () => clearTimeout(timer);
     }
-  }, [count, activity, language, onImageGenerated]);
+  }, [count, activity, language, onImageGenerated, attempts]);
 
   const getLanguageTitle = () => {
     switch(language) {
@@ -89,7 +162,8 @@ export default function OgImage({ count, activity, language, onImageGenerated }:
         justifyContent: 'center',
         color: 'white',
         fontFamily: 'sans-serif',
-        padding: '40px'
+        padding: '40px',
+        overflow: 'hidden'
       }}
     >
       <div
