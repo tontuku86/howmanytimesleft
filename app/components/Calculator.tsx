@@ -340,16 +340,28 @@ export default function Calculator({ locale }: { locale?: string }) {
   const handleDownloadImage = () => {
     if (!ogImageUrl) {
       console.log('Calculator: No OGP image URL available for download');
+      alert(t('noImageAvailable'));
       return;
     }
     
-    console.log('Calculator: Downloading OGP image');
-    const link = document.createElement('a');
-    link.href = ogImageUrl;
-    link.download = `${t('title')}_${result}_${currentActivity.name}.png`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    console.log('Calculator: Downloading OGP image, URL length:', ogImageUrl.length);
+    
+    try {
+      const link = document.createElement('a');
+      link.href = ogImageUrl;
+      link.download = `${t('title')}_${result}_${currentActivity.name}.png`;
+      document.body.appendChild(link);
+      link.click();
+      
+      // 少し待ってからリンクを削除
+      setTimeout(() => {
+        document.body.removeChild(link);
+        console.log('Calculator: Download initiated successfully');
+      }, 100);
+    } catch (error) {
+      console.error('Calculator: Error downloading image:', error);
+      alert(t('downloadError'));
+    }
   };
 
   // アクティビティを変更したときのサブタイトル更新

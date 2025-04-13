@@ -8,6 +8,9 @@ interface Html2CanvasOptions {
   scale?: number;
   useCORS?: boolean;
   backgroundColor?: string;
+  logging?: boolean;
+  allowTaint?: boolean;
+  foreignObjectRendering?: boolean;
 }
 
 interface OgImageProps {
@@ -23,17 +26,34 @@ export default function OgImage({ count, activity, language, onImageGenerated }:
   useEffect(() => {
     if (ogRef.current && onImageGenerated) {
       console.log('OgImage: Generating image for', activity, count, language);
-      html2canvas(ogRef.current, { 
-        scale: 2, // 高品質化のためスケールを上げる
-        useCORS: true, 
-        backgroundColor: '#4F46E5' // 背景色をindigo-600に設定
-      } as Html2CanvasOptions).then(canvas => {
-        const dataUrl = canvas.toDataURL('image/png');
-        console.log('OgImage: Image generated successfully');
-        onImageGenerated(dataUrl);
-      }).catch(error => {
-        console.error('OgImage: Error generating image', error);
-      });
+      
+      // DOMが完全にレンダリングされるまで少し待つ
+      setTimeout(() => {
+        if (!ogRef.current) return;
+        
+        html2canvas(ogRef.current, { 
+          scale: 2, // 高品質化のためスケールを上げる
+          useCORS: true, 
+          backgroundColor: '#4F46E5', // 背景色をindigo-600に設定
+          logging: true, // デバッグ用ロギングを有効化
+          allowTaint: true, // 外部リソースの使用を許可
+          foreignObjectRendering: true // 可能であればforeign objectレンダリングを使用
+        } as Html2CanvasOptions).then(canvas => {
+          try {
+            const dataUrl = canvas.toDataURL('image/png');
+            console.log('OgImage: Image generated successfully', { 
+              canvasWidth: canvas.width,
+              canvasHeight: canvas.height,
+              dataUrlLength: dataUrl.length
+            });
+            onImageGenerated(dataUrl);
+          } catch (err) {
+            console.error('OgImage: Error converting canvas to dataURL', err);
+          }
+        }).catch(error => {
+          console.error('OgImage: Error generating image', error);
+        });
+      }, 200); // 200msの遅延を追加
     }
   }, [count, activity, language, onImageGenerated]);
 
@@ -58,7 +78,6 @@ export default function OgImage({ count, activity, language, onImageGenerated }:
   return (
     <div
       ref={ogRef}
-      className="hidden"
       style={{
         width: '1200px',
         height: '630px',
