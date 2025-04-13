@@ -90,13 +90,11 @@ export default function RootLayout({
         {children}
         
         {/* Cloudflare Web Analytics */}
-        {process.env.NEXT_PUBLIC_CLOUDFLARE_ANALYTICS_TOKEN && (
-          <Script
-            strategy="afterInteractive"
-            src="https://static.cloudflareinsights.com/beacon.min.js"
-            data-cf-beacon={`{"token": "${process.env.NEXT_PUBLIC_CLOUDFLARE_ANALYTICS_TOKEN}"}`}
-          />
-        )}
+        <Script
+          strategy="afterInteractive"
+          src="https://static.cloudflareinsights.com/beacon.min.js"
+          data-cf-beacon='{"token": "1d196fde50e64b1eb8abcdcc691ce7d5"}'
+        />
       </body>
     </html>
   );
