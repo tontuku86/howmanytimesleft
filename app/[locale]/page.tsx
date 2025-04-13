@@ -9,7 +9,7 @@ import '../i18n/client';
 
 export default function Home() {
   const params = useParams();
-  const locale = (params.locale as string) || 'en';
+  const locale = React.use(Promise.resolve(params.locale as string)) || 'en';
   const { t, i18n } = useTranslation('common');
   const [currentLocale, setCurrentLocale] = useState(locale);
 
