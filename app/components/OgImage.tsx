@@ -42,7 +42,7 @@ export default function OgImage({ count, activity, language, onImageGenerated, p
         
         // 結果テキスト
         const resultText = getLanguageText();
-        ctx.font = 'bold 80px sans-serif';
+        ctx.font = 'bold 70px sans-serif';
         ctx.textAlign = 'center';
         ctx.fillStyle = 'white';
         ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
@@ -51,7 +51,7 @@ export default function OgImage({ count, activity, language, onImageGenerated, p
         ctx.shadowOffsetY = 2;
         
         // 長いテキストを複数行に分割
-        const maxLineWidth = width * 0.8;
+        const maxLineWidth = width * 0.85;
         const words = resultText.split(' ');
         let currentLine = '';
         let lines = [];
@@ -72,9 +72,28 @@ export default function OgImage({ count, activity, language, onImageGenerated, p
         } 
         // 日本語と中国語は文字数で分割
         else {
-          const charsPerLine = language === 'zh' ? 15 : 18;
-          for (let i = 0; i < resultText.length; i += charsPerLine) {
-            lines.push(resultText.substr(i, charsPerLine));
+          // 日本語のテキスト幅を正確に測定して分割
+          if (language === 'ja') {
+            let currentText = '';
+            for (let i = 0; i < resultText.length; i++) {
+              const testText = currentText + resultText[i];
+              const metrics = ctx.measureText(testText);
+              
+              if (metrics.width > maxLineWidth && currentText !== '') {
+                lines.push(currentText);
+                currentText = resultText[i];
+              } else {
+                currentText = testText;
+              }
+            }
+            if (currentText) lines.push(currentText);
+          } 
+          // 中国語は固定文字数で分割
+          else {
+            const charsPerLine = 12;
+            for (let i = 0; i < resultText.length; i += charsPerLine) {
+              lines.push(resultText.substr(i, charsPerLine));
+            }
           }
         }
         
