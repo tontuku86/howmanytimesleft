@@ -5,11 +5,6 @@ const nextConfig = {
   distDir: 'out',
   images: {
     unoptimized: true
-  },
-  experimental: {
-    // Next.js 14互換モードを有効にする
-    serverComponentsExternalPackages: [],
-    useNextHeaders: false
   }
 };
 
