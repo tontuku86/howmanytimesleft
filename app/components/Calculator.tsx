@@ -702,6 +702,8 @@ export default function Calculator({ locale }: { locale?: string }) {
                 activity={currentActivity.name}
                 language={i18n.language?.substring(0, 2) || 'ja'}
                 onImageGenerated={handleImageGenerated}
+                percentage={percentage}
+                totalPossible={totalPossible}
               />
             )}
           </div>

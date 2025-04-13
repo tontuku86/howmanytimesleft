@@ -7,9 +7,11 @@ interface OgImageProps {
   activity: string;
   language: string;
   onImageGenerated?: (dataUrl: string) => void;
+  percentage?: number | null;
+  totalPossible?: number | null;
 }
 
-export default function OgImage({ count, activity, language, onImageGenerated }: OgImageProps) {
+export default function OgImage({ count, activity, language, onImageGenerated, percentage = null, totalPossible = null }: OgImageProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -53,7 +55,7 @@ export default function OgImage({ count, activity, language, onImageGenerated }:
         ctx.shadowBlur = 10;
         ctx.shadowOffsetX = 2;
         ctx.shadowOffsetY = 2;
-        ctx.fillText(title, width / 2, height * 0.3);
+        ctx.fillText(title, width / 2, height * 0.25);
         
         // 結果テキスト
         const resultText = getLanguageText();
@@ -91,22 +93,65 @@ export default function OgImage({ count, activity, language, onImageGenerated }:
         
         // 複数行のテキストを描画
         const lineHeight = 90;
-        let yPos = height * 0.5;
+        let yPos = height * 0.4;
         if (lines.length > 1) {
-          yPos = height * 0.5 - ((lines.length - 1) * lineHeight) / 2;
+          yPos = height * 0.4 - ((lines.length - 1) * lineHeight) / 2;
         }
         
         for (let i = 0; i < lines.length; i++) {
           ctx.fillText(lines[i], width / 2, yPos + i * lineHeight);
         }
         
-        // ハッシュタグ（オプション）
+        // プログレスバーとパーセンテージの描画（渡された場合）
+        if (percentage !== null) {
+          // パーセンテージラベル
+          const remainingText = language === 'en' ? 'Remaining' : 
+                             language === 'zh' ? '剩余比例' : '残り割合';
+          
+          ctx.font = 'normal 28px sans-serif';
+          ctx.textAlign = 'left';
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+          ctx.shadowBlur = 0;
+          ctx.fillText(remainingText, width * 0.25, height * 0.65);
+          
+          // パーセンテージ値
+          const percentageValue = Math.round(100 - percentage) + '%';
+          ctx.textAlign = 'right';
+          ctx.fillText(percentageValue, width * 0.75, height * 0.65);
+          
+          // プログレスバー背景
+          ctx.fillStyle = 'rgba(75, 85, 99, 0.4)';
+          const barWidth = width * 0.5;
+          const barHeight = 16;
+          const barX = width * 0.25;
+          const barY = height * 0.68;
+          ctx.beginPath();
+          ctx.roundRect(barX, barY, barWidth, barHeight, 8);
+          ctx.fill();
+          
+          // プログレスバー前景（進捗部分）
+          ctx.fillStyle = 'rgba(129, 140, 248, 0.9)';
+          const progressWidth = barWidth * ((100 - percentage) / 100);
+          ctx.beginPath();
+          ctx.roundRect(barX, barY, progressWidth, barHeight, 8);
+          ctx.fill();
+          
+          // 総回数情報
+          if (totalPossible !== null) {
+            const totalText = language === 'en' ? `Total ${totalPossible} times in lifetime` : 
+                          language === 'zh' ? `一生总共${totalPossible}次` : `生涯で合計${totalPossible}回`;
+            
+            ctx.font = 'normal 24px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+            ctx.fillText(totalText, width / 2, height * 0.73);
+          }
+        }
+        
+        // ハッシュタグ
         ctx.font = '24px sans-serif';
         ctx.textAlign = 'right';
         ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
-        ctx.shadowBlur = 0;
-        ctx.shadowOffsetX = 0;
-        ctx.shadowOffsetY = 0;
         
         const hashtag = language === 'en' ? '#HowManyTimesLeft' : 
                         language === 'zh' ? '#还剩几次' : '#あと何回';
@@ -144,7 +189,7 @@ export default function OgImage({ count, activity, language, onImageGenerated }:
         console.error('OgImage: Canvas rendering error', error);
       }
     }
-  }, [count, activity, language, onImageGenerated]);
+  }, [count, activity, language, onImageGenerated, percentage, totalPossible]);
 
   const getLanguageTitle = () => {
     switch(language) {
