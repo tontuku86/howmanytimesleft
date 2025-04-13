@@ -353,10 +353,10 @@ export default function Calculator({ locale }: { locale?: string }) {
   };
 
   // アクティビティを変更したときのサブタイトル更新
-  const getSubtitle = () => {
-    if (!currentActivity) return t('subtitle');
-    return t('subtitleWithActivity', { activity: currentActivity.name });
-  };
+  // const getSubtitle = () => {
+  //   if (!currentActivity) return t('subtitle');
+  //   return t('subtitleWithActivity', { activity: currentActivity.name });
+  // };
 
   return (
     <div className="w-full max-w-lg mx-auto bg-gray-800/90 backdrop-blur-sm rounded-xl shadow-xl p-6 border border-gray-700/50">
@@ -506,7 +506,7 @@ export default function Calculator({ locale }: { locale?: string }) {
           {ageInputType === 'manual' ? (
             <div className="mb-4">
               <label htmlFor="currentAge" className="block text-sm font-medium text-gray-300 mb-2">
-                {t('currentAge')}
+            {t('currentAge')}
           </label>
           <input
             type="number"

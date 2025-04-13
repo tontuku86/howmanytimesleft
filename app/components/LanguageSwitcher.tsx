@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
 import i18next from '../i18n/client';
 import { useEffect } from 'react';
@@ -10,7 +10,6 @@ const languages = ['ja', 'en', 'zh'];
 
 export default function LanguageSwitcher({ locale }: { locale: string }) {
   const pathName = usePathname();
-  const router = useRouter();
   const { i18n } = useTranslation('common');
   
   // 現在の言語と渡されたlocaleが同期するように
