@@ -1,19 +1,15 @@
 import { ReactNode } from 'react';
-import React from 'react';
-
-interface LayoutProps {
-  children: ReactNode;
-  params: { locale: string };
-}
 
 export default function LocaleLayout({
   children,
   params,
-}: LayoutProps) {
-  const locale = React.use(Promise.resolve(params.locale));
-  
+}: {
+  children: ReactNode;
+  params: { locale: string };
+}) {
+  // 静的エクスポートの場合はシンプルに
   return (
-    <div lang={locale} className="locale-container">
+    <div lang={params.locale} className="locale-container">
       {children}
     </div>
   );
