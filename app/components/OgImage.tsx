@@ -6,17 +6,8 @@ import html2canvas from 'html2canvas';
 interface OgImageProps {
   elementId: string;
   onImageGenerated: (dataUrl: string) => void;
-  options?: Html2CanvasOptions;
+  options?: any; // html2canvasのオプションを柔軟に受け入れるため、anyに変更
   trigger?: boolean;
-}
-
-interface Html2CanvasOptions {
-  scale?: number;
-  useCORS?: boolean;
-  backgroundColor?: string;
-  logging?: boolean;
-  allowTaint?: boolean;
-  foreignObjectRendering?: boolean;
 }
 
 const OgImage: React.FC<OgImageProps> = ({
@@ -35,24 +26,28 @@ const OgImage: React.FC<OgImageProps> = ({
       if (element) {
         console.log(`OgImage: Generating image from element #${elementId}`);
         
-        html2canvas(element, {
-          scale: options.scale || 2,
-          useCORS: options.useCORS || true,
-          backgroundColor: options.backgroundColor || '#ffffff',
-          logging: options.logging || true,
-          allowTaint: options.allowTaint || true,
-          foreignObjectRendering: options.foreignObjectRendering || true,
-        }).then(canvas => {
-          try {
-            const dataUrl = canvas.toDataURL('image/png');
-            console.log(`OgImage: Image generated successfully. Canvas size: ${canvas.width}x${canvas.height}, dataUrl length: ${dataUrl.length}`);
-            onImageGenerated(dataUrl);
-          } catch (error) {
-            console.error('OgImage: Error converting canvas to data URL:', error);
-          }
-        }).catch(error => {
-          console.error('OgImage: Error generating image:', error);
-        });
+        // オプションをマージして渡す
+        const defaultOptions = {
+          scale: 2,
+          useCORS: true,
+          backgroundColor: '#ffffff',
+          logging: true,
+          allowTaint: true,
+          foreignObjectRendering: true
+        };
+        
+        html2canvas(element, { ...defaultOptions, ...options })
+          .then(canvas => {
+            try {
+              const dataUrl = canvas.toDataURL('image/png');
+              console.log(`OgImage: Image generated successfully. Canvas size: ${canvas.width}x${canvas.height}, dataUrl length: ${dataUrl.length}`);
+              onImageGenerated(dataUrl);
+            } catch (error) {
+              console.error('OgImage: Error converting canvas to data URL:', error);
+            }
+          }).catch(error => {
+            console.error('OgImage: Error generating image:', error);
+          });
       } else {
         console.error(`OgImage: Element with id "${elementId}" not found`);
       }
