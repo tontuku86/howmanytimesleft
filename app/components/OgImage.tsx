@@ -6,10 +6,19 @@ interface OgImageProps {
   count: number;
   activity: string;
   language: string;
+  percentage?: number;
+  totalPossible?: number;
   onImageGenerated: (dataUrl: string) => void;
 }
 
-const OgImage: React.FC<OgImageProps> = ({ count, activity, language, onImageGenerated }) => {
+const OgImage: React.FC<OgImageProps> = ({ 
+  count, 
+  activity, 
+  language, 
+  percentage = 0,
+  totalPossible = 0,
+  onImageGenerated 
+}) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
@@ -42,6 +51,7 @@ const OgImage: React.FC<OgImageProps> = ({ count, activity, language, onImageGen
       // カード部分の描画
       ctx.fillStyle = 'rgba(30, 41, 59, 0.8)'; // ダークブルーのカード
       roundRect(ctx, 50, 50, canvas.width - 100, canvas.height - 100, 20);
+      ctx.fill();
       
       // カードの枠線
       ctx.strokeStyle = 'rgba(100, 116, 139, 0.5)';
@@ -76,12 +86,44 @@ const OgImage: React.FC<OgImageProps> = ({ count, activity, language, onImageGen
       }
       
       ctx.font = 'bold 50px sans-serif';
-      ctx.fillText(message, canvas.width / 2, canvas.height / 2);
+      ctx.fillText(message, canvas.width / 2, canvas.height / 2 - 30);
       
       // 結果
       ctx.fillStyle = '#f59e0b'; // オレンジ色
       ctx.font = 'bold 120px sans-serif';
-      ctx.fillText(count.toString(), canvas.width / 2, canvas.height / 2 + 150);
+      ctx.fillText(count.toString(), canvas.width / 2, canvas.height / 2 + 100);
+      
+      // プログレスバー背景
+      const progressBarY = canvas.height / 2 + 170;
+      ctx.fillStyle = '#4b5563'; // グレー
+      roundRect(ctx, 200, progressBarY, 800, 20, 10);
+      ctx.fill();
+      
+      // プログレスバー
+      ctx.fillStyle = '#6366f1'; // インディゴ
+      if (percentage > 0) {
+        roundRect(ctx, 200, progressBarY, 800 * ((100 - percentage) / 100), 20, 10);
+        ctx.fill();
+      }
+      
+      // 進捗率テキスト
+      ctx.fillStyle = '#e5e7eb';
+      ctx.font = 'bold 24px sans-serif';
+      ctx.fillText(`${100 - percentage}%`, canvas.width / 2, progressBarY + 50);
+      
+      // 合計可能回数
+      let totalText;
+      if (language === 'ja') {
+        totalText = `合計で${totalPossible}回可能`;
+      } else if (language === 'zh') {
+        totalText = `一共可以${totalPossible}次`;
+      } else {
+        totalText = `Total possible: ${totalPossible} times`;
+      }
+      
+      ctx.fillStyle = '#9ca3af';
+      ctx.font = '24px sans-serif';
+      ctx.fillText(totalText, canvas.width / 2, progressBarY + 90);
       
       // 画像URLを生成して親に渡す
       try {
@@ -121,11 +163,11 @@ const OgImage: React.FC<OgImageProps> = ({ count, activity, language, onImageGen
         ctx.fillStyle = '#ffffff';
         ctx.font = 'bold 40px sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText('How Many Times Left?', canvas.width / 2, canvas.height / 2 - 20);
+        ctx.fillText('How Many Times Left?', canvas.width / 2, canvas.height / 2 - 60);
         
         ctx.fillStyle = '#f59e0b';
         ctx.font = 'bold 60px sans-serif';
-        ctx.fillText(count.toString(), canvas.width / 2, canvas.height / 2 + 60);
+        ctx.fillText(count.toString(), canvas.width / 2, canvas.height / 2 + 20);
         
         const dataUrl = canvas.toDataURL('image/png');
         console.log('OgImage: Generated fallback image URL of length:', dataUrl.length);
@@ -156,10 +198,9 @@ const OgImage: React.FC<OgImageProps> = ({ count, activity, language, onImageGen
       ctx.lineTo(x, y + radius);
       ctx.quadraticCurveTo(x, y, x + radius, y);
       ctx.closePath();
-      ctx.fill();
     }
     
-  }, [count, activity, language, onImageGenerated]);
+  }, [count, activity, language, percentage, totalPossible, onImageGenerated]);
 
   return (
     <div style={{ display: 'none' }}>

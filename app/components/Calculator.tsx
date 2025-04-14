@@ -896,6 +896,8 @@ export default function Calculator({ locale }: { locale?: string }) {
                 count={result} 
                 activity={currentActivity.name}
                 language={i18n.language?.substring(0, 2) || 'ja'}
+                percentage={percentage || 0}
+                totalPossible={totalPossible || 0}
                 onImageGenerated={handleImageGenerated}
               />
             )}
