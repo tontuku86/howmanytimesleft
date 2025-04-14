@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import html2canvas from 'html2canvas';
 
 interface OgImageProps {
@@ -8,205 +8,136 @@ interface OgImageProps {
   activity: string;
   language: string;
   onImageGenerated: (dataUrl: string) => void;
-  options?: any;
 }
 
-// Simple OG Image generation component
-const OgImage: React.FC<OgImageProps> = ({
-  count,
-  activity,
-  language,
-  onImageGenerated,
-  options = {}
-}) => {
-  const [elementId] = useState(`og-image-${Date.now()}`);
-  
-  // Single useEffect to handle the entire process
+// html2canvasのオプションインターフェースを拡張
+interface Html2CanvasOptions {
+  scale?: number;
+  useCORS?: boolean;
+  backgroundColor?: string;
+  logging?: boolean;
+  allowTaint?: boolean;
+  foreignObjectRendering?: boolean;
+}
+
+const OgImage: React.FC<OgImageProps> = ({ count, activity, language, onImageGenerated }) => {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+
   useEffect(() => {
-    // Function for language-specific content
-    const getLanguageContent = () => {
-      const fontSizes = { en: 26, zh: 30, ja: 28 };
-      const titles = { en: 'How Many Times Left?', zh: '还能有几次？', ja: 'あと何回？' };
-      
-      const messages = {
-        en: `You can ${activity} ${count} more times.`,
-        zh: `你还能${activity}${count}次。`,
-        ja: `あと${count}回、${activity}ができる。`
-      };
-      
-      const lang = language || 'ja';
-      return {
-        fontSize: fontSizes[lang as keyof typeof fontSizes] || 28,
-        title: titles[lang as keyof typeof titles] || 'あと何回？',
-        message: messages[lang as keyof typeof messages] || `あと${count}回、${activity}ができる。`
-      };
-    };
-    
-    // Get the content based on language
-    const content = getLanguageContent();
-    
-    // Create a container for the OG image with simple styling
-    const container = document.createElement('div');
-    container.id = elementId;
-    
-    // Set basic styles directly as string (simpler and more reliable)
-    container.setAttribute('style', `
-      position: fixed;
-      top: -9999px;
-      left: -9999px;
-      width: 1200px;
-      height: 630px;
-      background: linear-gradient(135deg, #1e293b, #0f172a);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      font-family: sans-serif;
-      padding: 40px;
-      box-sizing: border-box;
-      overflow: hidden;
-      z-index: -1;
-    `);
-    
-    // Create simple HTML structure
-    container.innerHTML = `
-      <div style="
-        background: rgba(30, 41, 59, 0.8);
-        border-radius: 24px;
-        padding: 40px 60px;
-        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-        border: 1px solid rgba(79, 70, 229, 0.2);
-        max-width: 85%;
-        position: relative;
-        z-index: 1;
-      ">
-        <h1 style="
-          font-size: 48px;
-          font-weight: 700;
-          margin-bottom: 30px;
-          color: #f1f5f9;
-          text-shadow: 0 2px 4px rgba(0,0,0,0.1);
-          text-align: center;
-        ">${content.title}</h1>
-        
-        <div style="
-          width: 120px;
-          height: 4px;
-          background: linear-gradient(90deg, #6366f1, #8b5cf6);
-          border-radius: 2px;
-          margin: 0 auto 30px;
-        "></div>
-        
-        <div style="
-          font-size: ${content.fontSize}px;
-          margin-bottom: 30px;
-          color: #f8fafc;
-          font-weight: 600;
-          line-height: 1.4;
-          padding: 12px 0;
-          text-align: center;
-        ">${content.message}</div>
-        
-        <div style="
-          width: 100%;
-          height: 10px;
-          background: rgba(100, 116, 139, 0.2);
-          border-radius: 5px;
-          margin-top: 25px;
-          position: relative;
-          overflow: hidden;
-        ">
-          <div style="
-            width: ${Math.max(0, Math.min(100, Math.round(count / (count + 10) * 100)))}%;
-            height: 100%;
-            background: linear-gradient(90deg, #4f46e5, #7c3aed);
-            border-radius: 5px;
-            position: absolute;
-            top: 0;
-            left: 0;
-          "></div>
-        </div>
-      </div>
-      
-      <div style="
-        position: absolute;
-        bottom: 30px;
-        left: 0;
-        right: 0;
-        text-align: center;
-        font-size: 16px;
-        color: #94a3b8;
-      ">howmanytimesleft.com</div>
-    `;
-    
-    document.body.appendChild(container);
-    
-    // Longer delay to ensure rendering is complete
-    const timeoutId = setTimeout(() => {
-      const element = document.getElementById(elementId);
-      
-      if (!element) {
-        console.error(`OgImage: Element with id "${elementId}" not found`);
+    // コンポーネントがマウントされた直後に画像を生成するのではなく
+    // 少し遅延させてDOMが確実に描画された状態にする
+    const timer = setTimeout(() => {
+      if (!containerRef.current) {
+        console.error('OgImage: Container ref is null');
         return;
       }
+
+      console.log('OgImage: Starting image generation...');
       
-      console.log(`OgImage: Generating image from element #${elementId}`);
-      
-      // Simplified options with sensible defaults
-      html2canvas(element, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: '#0f172a',
-        logging: true,
-        allowTaint: true,
-        foreignObjectRendering: true,
-        onclone: (clonedDoc) => {
-          // Make sure the cloned element is visible in the cloned document
-          const clonedElement = clonedDoc.getElementById(elementId);
-          if (clonedElement) {
-            clonedElement.style.position = 'relative';
-            clonedElement.style.top = '0';
-            clonedElement.style.left = '0';
-            clonedElement.style.zIndex = '1';
-          }
-        }
-      }).then(canvas => {
-        try {
-          // Try PNG first
+      // html2canvasオプション
+      const options: Html2CanvasOptions = {
+        scale: 2, // 高画質のため2倍のスケール
+        useCORS: true, // クロスオリジン画像対応
+        backgroundColor: '#0f172a', // 背景色
+        logging: true, // デバッグのためのロギング有効化
+        allowTaint: true, // 外部画像によるキャンバスの汚染を許可
+        foreignObjectRendering: true // SVGやその他の外部コンテンツの描画を改善
+      };
+
+      html2canvas(containerRef.current, options)
+        .then(canvas => {
           try {
-            const pngDataUrl = canvas.toDataURL('image/png');
-            console.log(`OgImage: PNG generated, size: ${pngDataUrl.length}`);
-            onImageGenerated(pngDataUrl);
-          } catch (pngError) {
-            // Fallback to JPEG if PNG fails
-            console.warn('OgImage: PNG generation failed, trying JPEG', pngError);
-            const jpegDataUrl = canvas.toDataURL('image/jpeg', 0.9);
-            onImageGenerated(jpegDataUrl);
+            // 画像URLを生成して親に渡す
+            const dataUrl = canvas.toDataURL('image/png');
+            console.log(`OgImage: Generated image successfully. Canvas dimensions: ${canvas.width}x${canvas.height}, Data URL length: ${dataUrl.length}`);
+            onImageGenerated(dataUrl);
+          } catch (error) {
+            console.error('OgImage: Error converting canvas to data URL:', error);
+            onImageGenerated(''); // 空の文字列を返して呼び出し元にエラーを通知
           }
-        } catch (error) {
-          console.error('OgImage: Error converting canvas to data URL:', error);
-        }
+        })
+        .catch(error => {
+          console.error('OgImage: Error generating image with html2canvas:', error);
+          onImageGenerated(''); // 空の文字列を返して呼び出し元にエラーを通知
+        });
+    }, 200); // 200ms遅延
+
+    return () => clearTimeout(timer);
+  }, [count, activity, language, onImageGenerated]);
+
+  // タイトルとメッセージの多言語対応
+  const title = language === 'ja' 
+    ? 'あと何回？' 
+    : language === 'zh' 
+      ? '还能做多少次？' 
+      : 'How Many Times Left?';
+
+  const message = language === 'ja'
+    ? `あなたは${activity}をあと${count}回できます`
+    : language === 'zh'
+      ? `你还能${activity}${count}次`
+      : `You can ${activity} ${count} more times`;
+
+  return (
+    <div 
+      ref={containerRef}
+      style={{ 
+        position: 'absolute', 
+        left: '-9999px',
+        width: '1200px',
+        height: '630px',
+        backgroundColor: '#0f172a',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '50px',
+        fontFamily: 'sans-serif'
+      }}
+    >
+      <div style={{
+        width: '100%',
+        height: '100%',
+        backgroundColor: 'rgba(30, 41, 59, 0.8)',
+        borderRadius: '20px',
+        border: '2px solid rgba(100, 116, 139, 0.5)',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '30px'
+      }}>
+        <h1 style={{
+          color: '#ffffff',
+          fontSize: '60px',
+          fontWeight: 'bold',
+          margin: '0 0 60px 0',
+          textAlign: 'center'
+        }}>
+          {title}
+        </h1>
         
-        // Clean up
-        if (document.body.contains(container)) {
-          document.body.removeChild(container);
-        }
-      }).catch(error => {
-        console.error('OgImage: Error generating image:', error);
-      });
-    }, 1000); // Increased to 1000ms (1 second)
-    
-    // Clean up function
-    return () => {
-      clearTimeout(timeoutId);
-      if (document.body.contains(container)) {
-        document.body.removeChild(container);
-      }
-    };
-  }, [count, activity, language, elementId, onImageGenerated, options]);
-  
-  return null;
+        <p style={{
+          color: '#ffffff',
+          fontSize: '50px',
+          fontWeight: 'bold',
+          margin: '0 0 50px 0',
+          textAlign: 'center'
+        }}>
+          {message}
+        </p>
+        
+        <span style={{
+          color: '#f59e0b',
+          fontSize: '120px',
+          fontWeight: 'bold',
+          textAlign: 'center'
+        }}>
+          {count}
+        </span>
+      </div>
+    </div>
+  );
 };
 
 export default OgImage; 

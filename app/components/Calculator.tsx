@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import i18next from '../i18n/client';
 import DatePicker from 'react-datepicker';
@@ -28,6 +28,20 @@ export default function Calculator({ locale }: { locale?: string }) {
   console.log('Calculator: Component rendering with locale', locale);
   
   const { t, i18n } = useTranslation('common');
+  
+  // アクティビティの定義（他のstateの前に定義）
+  const presetActivities = useMemo(() => {
+    return [
+      { id: 'reading', name: t('activities.reading'), startAge: 5 },
+      { id: 'swimming', name: t('activities.swimming'), startAge: 5 },
+      { id: 'concert', name: t('activities.concert'), startAge: 15 },
+      { id: 'coffee', name: t('activities.coffee'), startAge: 15 },
+      { id: 'hometown', name: t('activities.hometown'), startAge: 18 },
+      { id: 'ski', name: t('activities.ski'), startAge: 8 },
+      { id: 'travel', name: t('activities.travel'), startAge: 18 },
+    ];
+  }, [t]);
+  
   const [ageInputType, setAgeInputType] = useState<AgeInputType>('manual');
   const [currentAge, setCurrentAge] = useState<number | ''>('');
   const [birthdate, setBirthdate] = useState<Date | null>(null);
@@ -46,15 +60,18 @@ export default function Calculator({ locale }: { locale?: string }) {
   const [customActivity, setCustomActivity] = useState<string>('');
   const [showAddActivity, setShowAddActivity] = useState<boolean>(false);
   const [ogImageUrl, setOgImageUrl] = useState<string>('');
-
-  // アクティビティの定義
-  const presetActivities = useMemo(() => [
-    { id: 'coffee', name: t('activity_coffee'), startAge: 20 },
-    { id: 'reading', name: t('activity_reading'), startAge: 10 },
-    { id: 'movie', name: t('activity_movie'), startAge: 5 },
-    { id: 'friends', name: t('activity_friends'), startAge: 5 },
-    { id: 'parents', name: t('activity_parents'), startAge: 0 },
-  ], [locale, t]);
+  const [selectedActivity, setSelectedActivity] = useState<string>(
+    presetActivities[0]?.id || 'reading'
+  );
+  const [birthYear, setBirthYear] = useState<number>(1980);
+  const [startAge, setStartAge] = useState<number>(20);
+  const [endAge, setEndAge] = useState<number>(80);
+  const [frequency, setFrequency] = useState<number>(12);
+  const [remainingCount, setRemainingCount] = useState<number>(0);
+  const [imageUrl, setImageUrl] = useState<string>('');
+  const [isGeneratingImage, setIsGeneratingImage] = useState<boolean>(false);
+  const [isMobile, setIsMobile] = useState<boolean>(false);
+  const [downloadError, setDownloadError] = useState<string>('');
 
   // 言語が指定されている場合は、それに合わせて設定
   useEffect(() => {
@@ -259,6 +276,11 @@ export default function Calculator({ locale }: { locale?: string }) {
     setResult(timesLeft);
     setTotalPossible(totalPossibleTimes);
     setPercentage(Math.round((timesLeft / totalPossibleTimes) * 100));
+    
+    // 計算後に自動的に画像生成を開始する
+    setRemainingCount(timesLeft);
+    setSelectedActivity(currentActivity.id);
+    setIsGeneratingImage(true);
   };
 
   // DatePickerのカスタマイズ
@@ -331,77 +353,204 @@ export default function Calculator({ locale }: { locale?: string }) {
   };
 
   // OGP画像が生成されたときのハンドラー
-  const handleImageGenerated = (dataUrl: string) => {
-    console.log('Calculator: OGP image generated');
-    setOgImageUrl(dataUrl);
-  };
-
-  // 画像のダウンロード
-  const handleDownloadImage = () => {
-    if (!ogImageUrl) {
-      console.log('Calculator: No OGP image URL available for download');
-      alert(t('noImageAvailable'));
+  const handleImageGenerated = useCallback((dataUrl: string) => {
+    setIsGeneratingImage(false);
+    
+    // 画像URLが有効かチェック
+    if (!dataUrl || dataUrl.length < 100) {
+      console.error('Calculator: Invalid image data URL received', dataUrl ? `length: ${dataUrl.length}` : 'empty url');
+      setDownloadError(t('error.imageGeneration'));
       return;
     }
     
-    console.log('Calculator: Downloading OGP image, URL length:', ogImageUrl.length);
-    
-    try {
-      // モバイルデバイス判定
-      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-      console.log('Calculator: Device is mobile:', isMobile);
-      
-      // iOSの場合は特別な処理が必要
-      const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-      const filename = `${t('title')}_${result}_${currentActivity.name}.png`;
-      
-      if (isMobile) {
-        // 安全なモーダル表示のためにReactで実装したモーダルを使用する
-        // ここではDOM操作ではなく、状態管理を通じてReactの流れに沿った実装にする
-        try {
-          // 画像を新しいウィンドウで直接開く - シンプルでエラーが少ない方法
-          window.open(ogImageUrl, '_blank');
-          
-          // 長押し保存を促すメッセージを表示
-          alert(isIOS 
-            ? t('iosInstructions') 
-            : t('longPressToSave'));
-            
-        } catch (error) {
-          console.error('Calculator: Error showing image:', error);
-          
-          // エラーが発生した場合のフォールバック
-          alert(t('downloadError'));
-          
-          // デバッグ情報をコンソールに出力
-          console.log('URL length:', ogImageUrl.length);
-          console.log('UserAgent:', navigator.userAgent);
-        }
-      } else {
-        // デスクトップ向けの処理 - 通常のファイルダウンロード
-        const a = document.createElement('a');
-        a.href = ogImageUrl;
-        a.download = filename;
-        a.style.display = 'none';
-        document.body.appendChild(a);
-        a.click();
-        
-        // クリーンアップ
-        setTimeout(() => {
-          document.body.removeChild(a);
-        }, 100);
-      }
-    } catch (error) {
-      console.error('Calculator: Error downloading image:', error);
-      alert(t('downloadError'));
-    }
-  };
+    setImageUrl(dataUrl);
+    console.log('Calculator: Image generated successfully. URL length:', dataUrl.length);
+    setDownloadError('');
+  }, [t]);
 
-  // アクティビティを変更したときのサブタイトル更新
-  // const getSubtitle = () => {
-  //   if (!currentActivity) return t('subtitle');
-  //   return t('subtitleWithActivity', { activity: currentActivity.name });
-  // };
+  // 画像のダウンロード処理
+  const handleDownloadImage = useCallback(() => {
+    if (!imageUrl || imageUrl.length < 100) {
+      console.error('Calculator: Cannot download - Invalid image URL', imageUrl ? `length: ${imageUrl.length}` : 'empty url');
+      
+      // 画像が生成されていない場合は再度生成を試みる
+      if (result !== null) {
+        console.log('Calculator: Retrying image generation...');
+        setIsGeneratingImage(true);
+        // 再生成のための状態更新（OgImageコンポーネントの再レンダリングをトリガー）
+        setRemainingCount(result);
+      } else {
+        setDownloadError(t('error.download'));
+      }
+      return;
+    }
+
+    try {
+      // モバイルの場合は新しいタブで開く（ダウンロードが信頼性が低いため）
+      if (isMobile) {
+        const newTab = window.open();
+        if (!newTab) {
+          console.error('Failed to open new tab for image');
+          setDownloadError(t('error.popupBlocked'));
+          return;
+        }
+        
+        newTab.document.write(`
+          <html>
+            <head>
+              <title>${t('common.saveImage')}</title>
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <style>
+                body { 
+                  margin: 0; 
+                  padding: 20px; 
+                  background: #1e293b; 
+                  color: white; 
+                  font-family: sans-serif;
+                  text-align: center;
+                }
+                img { 
+                  max-width: 100%; 
+                  height: auto; 
+                  margin: 20px auto;
+                  border: 1px solid #64748b;
+                  border-radius: 8px;
+                }
+                .instructions {
+                  background: rgba(255,255,255,0.1);
+                  padding: 15px;
+                  border-radius: 8px;
+                  margin: 20px auto;
+                  max-width: 500px;
+                }
+              </style>
+            </head>
+            <body>
+              <h2>${t('common.saveImage')}</h2>
+              <div class="instructions">
+                ${t('common.isMobile') === 'iOS' ? 
+                  `<p>${t('instructions.saveIOS')}</p>` : 
+                  `<p>${t('instructions.saveAndroid')}</p>`
+                }
+              </div>
+              <img src="${imageUrl}" alt="${t('common.sharableImage')}" />
+            </body>
+          </html>
+        `);
+        newTab.document.close();
+      } else {
+        // デスクトップの場合は通常のダウンロード
+        const link = document.createElement('a');
+        link.href = imageUrl;
+        const selectedActivityName = getActivityNameById(selectedActivity);
+        link.download = `howmanytimes-${selectedActivityName}-${remainingCount}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+
+      setDownloadError('');
+    } catch (error) {
+      console.error('Error downloading image:', error);
+      setDownloadError(t('error.download'));
+    }
+  }, [imageUrl, isMobile, remainingCount, selectedActivity, t]);
+
+  // 画面サイズの変更を検知
+  useEffect(() => {
+    const checkIsMobile = () => {
+      setIsMobile(window.innerWidth < 768 || /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
+    };
+    
+    checkIsMobile();
+    window.addEventListener('resize', checkIsMobile);
+    
+    return () => {
+      window.removeEventListener('resize', checkIsMobile);
+    };
+  }, []);
+
+  // 計算処理
+  const calculateRemainingTimes = useCallback(() => {
+    console.log('Calculator: Calculate button clicked');
+    
+    if (
+      currentAge === '' || 
+      expectedLifespan === '' || 
+      frequencyValue === '' ||
+      typeof currentAge !== 'number' ||
+      typeof expectedLifespan !== 'number' ||
+      typeof frequencyValue !== 'number'
+    ) {
+      console.log('Calculator: Invalid input values, calculation aborted');
+      return;
+    }
+
+    // 現在のアクティビティの開始年齢を考慮
+    const effectiveAge = Math.max(currentAge, currentActivity.startAge);
+    const yearsLeft = expectedLifespan - effectiveAge;
+    const yearsPassed = Math.max(0, effectiveAge - currentActivity.startAge);
+    
+    console.log('Calculator: Calculation parameters', {
+      currentAge,
+      expectedLifespan,
+      startAge: currentActivity.startAge,
+      effectiveAge,
+      yearsLeft,
+      yearsPassed,
+      frequencyType,
+      frequencyValue
+    });
+    
+    if (yearsLeft <= 0) {
+      console.log('Calculator: No years left, setting results to 0');
+      setResult(0);
+      setPercentage(0);
+      setTotalPossible(0);
+      return;
+    }
+
+    let timesLeft = 0;
+    let totalPossibleTimes = 0;
+    const daysInYear = 365.25;
+    
+    switch (frequencyType) {
+      case 'times-per-day':
+        timesLeft = Math.round(yearsLeft * daysInYear * frequencyValue);
+        totalPossibleTimes = Math.round((yearsLeft + yearsPassed) * daysInYear * frequencyValue);
+        break;
+      case 'times-per-week':
+        timesLeft = Math.round(yearsLeft * 52 * frequencyValue);
+        totalPossibleTimes = Math.round((yearsLeft + yearsPassed) * 52 * frequencyValue);
+        break;
+      case 'times-per-month':
+        timesLeft = Math.round(yearsLeft * 12 * frequencyValue);
+        totalPossibleTimes = Math.round((yearsLeft + yearsPassed) * 12 * frequencyValue);
+        break;
+      case 'times-per-year':
+        timesLeft = Math.round(yearsLeft * frequencyValue);
+        totalPossibleTimes = Math.round((yearsLeft + yearsPassed) * frequencyValue);
+        break;
+    }
+    
+    console.log('Calculator: Calculation results', { timesLeft, totalPossibleTimes });
+    
+    setResult(timesLeft);
+    setTotalPossible(totalPossibleTimes);
+    setPercentage(Math.round((timesLeft / totalPossibleTimes) * 100));
+    
+    // 計算後に自動的に画像生成を開始する
+    setRemainingCount(timesLeft);
+    setSelectedActivity(currentActivity.id);
+    setIsGeneratingImage(true);
+    
+  }, [currentAge, expectedLifespan, frequencyValue, frequencyType, currentActivity.startAge, currentActivity.id]);
+
+  // アクティビティIDから名前を取得する関数
+  const getActivityNameById = useCallback((id: string): string => {
+    const activity = presetActivities.find(a => a.id === id);
+    return activity ? activity.name : t('common.activity');
+  }, [presetActivities, t]);
 
   return (
     <div className="w-full max-w-lg mx-auto bg-gray-800/90 backdrop-blur-sm rounded-xl shadow-xl p-6 border border-gray-700/50">
