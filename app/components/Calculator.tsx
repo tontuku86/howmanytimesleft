@@ -283,16 +283,17 @@ export default function Calculator({ locale }: { locale?: string }) {
     setIsGeneratingImage(true);
   };
 
-  // DatePickerのカスタマイズ
-  const getLocale = () => {
+  // datepickerの言語設定を取得する関数
+  const getLocale = useCallback(() => {
     const locale = i18n.language?.substring(0, 2) || 'ja';
     return locale === 'ja' ? ja : locale === 'zh' ? zhCN : enUS;
-  };
+  }, [i18n.language]);
 
-  const handleDateChange = (date: Date | null) => {
-    console.log('Calculator: Date changed to', date);
+  // 日付選択のハンドラー
+  const handleDateChange = useCallback((date: Date | null) => {
+    console.log('Calculator: Date selected', date);
     setBirthdate(date);
-  };
+  }, []);
 
   // カスタムアクティビティの追加
   const handleAddCustomActivity = () => {
@@ -370,18 +371,25 @@ export default function Calculator({ locale }: { locale?: string }) {
 
   // 画像のダウンロード処理
   const handleDownloadImage = useCallback(() => {
+    // 画像がまだ生成されていない場合は生成を開始
+    if (result !== null && (!imageUrl || imageUrl.length < 100)) {
+      console.log('Calculator: Image not available, generating now...');
+      setIsGeneratingImage(true);
+      // 少し遅延させてからダウンロードを再試行
+      setTimeout(() => {
+        if (imageUrl && imageUrl.length >= 100) {
+          console.log('Calculator: Image is now available, proceeding with download');
+          handleDownloadImage();
+        } else {
+          setDownloadError(t('error.download'));
+        }
+      }, 1000);
+      return;
+    }
+
     if (!imageUrl || imageUrl.length < 100) {
       console.error('Calculator: Cannot download - Invalid image URL', imageUrl ? `length: ${imageUrl.length}` : 'empty url');
-      
-      // 画像が生成されていない場合は再度生成を試みる
-      if (result !== null) {
-        console.log('Calculator: Retrying image generation...');
-        setIsGeneratingImage(true);
-        // 再生成のための状態更新（OgImageコンポーネントの再レンダリングをトリガー）
-        setRemainingCount(result);
-      } else {
-        setDownloadError(t('error.download'));
-      }
+      setDownloadError(t('error.download'));
       return;
     }
 
@@ -535,14 +543,19 @@ export default function Calculator({ locale }: { locale?: string }) {
     
     console.log('Calculator: Calculation results', { timesLeft, totalPossibleTimes });
     
-    setResult(timesLeft);
+    // 先に結果をセットしてから画像生成を開始
+    const calculatedTimesLeft = timesLeft;
+    setResult(calculatedTimesLeft);
     setTotalPossible(totalPossibleTimes);
-    setPercentage(Math.round((timesLeft / totalPossibleTimes) * 100));
+    setPercentage(Math.round((calculatedTimesLeft / totalPossibleTimes) * 100));
     
-    // 計算後に自動的に画像生成を開始する
-    setRemainingCount(timesLeft);
-    setSelectedActivity(currentActivity.id);
-    setIsGeneratingImage(true);
+    // 少し遅延させてから画像生成を開始（レンダリングが完了するのを待つ）
+    setTimeout(() => {
+      console.log('Calculator: Starting image generation after calculation');
+      setRemainingCount(calculatedTimesLeft);
+      setSelectedActivity(currentActivity.id);
+      setIsGeneratingImage(true);
+    }, 500);
     
   }, [currentAge, expectedLifespan, frequencyValue, frequencyType, currentActivity.startAge, currentActivity.id]);
 
@@ -785,7 +798,7 @@ export default function Calculator({ locale }: { locale?: string }) {
         </div>
         
         <button
-          onClick={handleCalculate}
+          onClick={calculateRemainingTimes}
           className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-4 px-6 rounded-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-400 transition-all duration-200 shadow-lg text-lg mt-2"
         >
           {t('calculate')}

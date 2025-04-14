@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useEffect, useRef } from 'react';
-import html2canvas from 'html2canvas';
 
 interface OgImageProps {
   count: number;
@@ -10,132 +9,161 @@ interface OgImageProps {
   onImageGenerated: (dataUrl: string) => void;
 }
 
-// html2canvasのオプションインターフェースを拡張
-interface Html2CanvasOptions {
-  scale?: number;
-  useCORS?: boolean;
-  backgroundColor?: string;
-  logging?: boolean;
-  allowTaint?: boolean;
-  foreignObjectRendering?: boolean;
-}
-
 const OgImage: React.FC<OgImageProps> = ({ count, activity, language, onImageGenerated }) => {
-  const containerRef = useRef<HTMLDivElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
-    // コンポーネントがマウントされた直後に画像を生成するのではなく
-    // 少し遅延させてDOMが確実に描画された状態にする
-    const timer = setTimeout(() => {
-      if (!containerRef.current) {
-        console.error('OgImage: Container ref is null');
-        return;
-      }
+    // キャンバスが存在することを確認
+    if (!canvasRef.current) {
+      console.error('OgImage: Canvas ref is null');
+      return;
+    }
 
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    
+    if (!ctx) {
+      console.error('OgImage: Failed to get canvas context');
+      generateFallbackImage();
+      return;
+    }
+    
+    try {
       console.log('OgImage: Starting image generation...');
       
-      // html2canvasオプション
-      const options: Html2CanvasOptions = {
-        scale: 2, // 高画質のため2倍のスケール
-        useCORS: true, // クロスオリジン画像対応
-        backgroundColor: '#0f172a', // 背景色
-        logging: true, // デバッグのためのロギング有効化
-        allowTaint: true, // 外部画像によるキャンバスの汚染を許可
-        foreignObjectRendering: true // SVGやその他の外部コンテンツの描画を改善
-      };
-
-      html2canvas(containerRef.current, options)
-        .then(canvas => {
-          try {
-            // 画像URLを生成して親に渡す
-            const dataUrl = canvas.toDataURL('image/png');
-            console.log(`OgImage: Generated image successfully. Canvas dimensions: ${canvas.width}x${canvas.height}, Data URL length: ${dataUrl.length}`);
-            onImageGenerated(dataUrl);
-          } catch (error) {
-            console.error('OgImage: Error converting canvas to data URL:', error);
-            onImageGenerated(''); // 空の文字列を返して呼び出し元にエラーを通知
-          }
-        })
-        .catch(error => {
-          console.error('OgImage: Error generating image with html2canvas:', error);
-          onImageGenerated(''); // 空の文字列を返して呼び出し元にエラーを通知
-        });
-    }, 200); // 200ms遅延
-
-    return () => clearTimeout(timer);
+      // キャンバスサイズを設定
+      canvas.width = 1200;
+      canvas.height = 630;
+      
+      // 背景描画
+      ctx.fillStyle = '#0f172a'; // ダークブルー背景
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // カード部分の描画
+      ctx.fillStyle = 'rgba(30, 41, 59, 0.8)'; // ダークブルーのカード
+      roundRect(ctx, 50, 50, canvas.width - 100, canvas.height - 100, 20);
+      
+      // カードの枠線
+      ctx.strokeStyle = 'rgba(100, 116, 139, 0.5)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      
+      // テキスト設定
+      ctx.textAlign = 'center';
+      
+      // タイトル
+      let title;
+      if (language === 'ja') {
+        title = 'あと何回？';
+      } else if (language === 'zh') {
+        title = '还能做多少次？';
+      } else {
+        title = 'How Many Times Left?';
+      }
+      
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 60px sans-serif';
+      ctx.fillText(title, canvas.width / 2, 150);
+      
+      // サブタイトル
+      let message;
+      if (language === 'ja') {
+        message = `あなたは${activity}をあと${count}回できます`;
+      } else if (language === 'zh') {
+        message = `你还能${activity}${count}次`;
+      } else {
+        message = `You can ${activity} ${count} more times`;
+      }
+      
+      ctx.font = 'bold 50px sans-serif';
+      ctx.fillText(message, canvas.width / 2, canvas.height / 2);
+      
+      // 結果
+      ctx.fillStyle = '#f59e0b'; // オレンジ色
+      ctx.font = 'bold 120px sans-serif';
+      ctx.fillText(count.toString(), canvas.width / 2, canvas.height / 2 + 150);
+      
+      // 画像URLを生成して親に渡す
+      try {
+        const dataUrl = canvas.toDataURL('image/png');
+        console.log(`OgImage: Generated image successfully. Canvas dimensions: ${canvas.width}x${canvas.height}, Data URL length: ${dataUrl.length}`);
+        onImageGenerated(dataUrl);
+      } catch (error) {
+        console.error('OgImage: Error converting canvas to data URL:', error);
+        generateFallbackImage();
+      }
+    } catch (error) {
+      console.error('OgImage: Error generating image:', error);
+      generateFallbackImage();
+    }
+    
+    // フォールバック画像生成
+    function generateFallbackImage() {
+      if (!canvasRef.current) return;
+      
+      const canvas = canvasRef.current;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        console.error('OgImage: Failed to get canvas context for fallback image');
+        onImageGenerated(''); // 空の文字列を返して呼び出し元にエラーを通知
+        return;
+      }
+      
+      try {
+        console.log('OgImage: Generating fallback image...');
+        // シンプルな画像を作成
+        canvas.width = 800;
+        canvas.height = 400;
+        
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 40px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('How Many Times Left?', canvas.width / 2, canvas.height / 2 - 20);
+        
+        ctx.fillStyle = '#f59e0b';
+        ctx.font = 'bold 60px sans-serif';
+        ctx.fillText(count.toString(), canvas.width / 2, canvas.height / 2 + 60);
+        
+        const dataUrl = canvas.toDataURL('image/png');
+        console.log('OgImage: Generated fallback image URL of length:', dataUrl.length);
+        onImageGenerated(dataUrl);
+      } catch (error) {
+        console.error('OgImage: Error generating fallback image:', error);
+        onImageGenerated(''); // 空の文字列を返して呼び出し元にエラーを通知
+      }
+    }
+    
+    // 角丸長方形を描画する関数
+    function roundRect(
+      ctx: CanvasRenderingContext2D,
+      x: number,
+      y: number,
+      width: number,
+      height: number,
+      radius: number
+    ) {
+      ctx.beginPath();
+      ctx.moveTo(x + radius, y);
+      ctx.lineTo(x + width - radius, y);
+      ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+      ctx.lineTo(x + width, y + height - radius);
+      ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+      ctx.lineTo(x + radius, y + height);
+      ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+      ctx.lineTo(x, y + radius);
+      ctx.quadraticCurveTo(x, y, x + radius, y);
+      ctx.closePath();
+      ctx.fill();
+    }
+    
   }, [count, activity, language, onImageGenerated]);
 
-  // タイトルとメッセージの多言語対応
-  const title = language === 'ja' 
-    ? 'あと何回？' 
-    : language === 'zh' 
-      ? '还能做多少次？' 
-      : 'How Many Times Left?';
-
-  const message = language === 'ja'
-    ? `あなたは${activity}をあと${count}回できます`
-    : language === 'zh'
-      ? `你还能${activity}${count}次`
-      : `You can ${activity} ${count} more times`;
-
   return (
-    <div 
-      ref={containerRef}
-      style={{ 
-        position: 'absolute', 
-        left: '-9999px',
-        width: '1200px',
-        height: '630px',
-        backgroundColor: '#0f172a',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '50px',
-        fontFamily: 'sans-serif'
-      }}
-    >
-      <div style={{
-        width: '100%',
-        height: '100%',
-        backgroundColor: 'rgba(30, 41, 59, 0.8)',
-        borderRadius: '20px',
-        border: '2px solid rgba(100, 116, 139, 0.5)',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '30px'
-      }}>
-        <h1 style={{
-          color: '#ffffff',
-          fontSize: '60px',
-          fontWeight: 'bold',
-          margin: '0 0 60px 0',
-          textAlign: 'center'
-        }}>
-          {title}
-        </h1>
-        
-        <p style={{
-          color: '#ffffff',
-          fontSize: '50px',
-          fontWeight: 'bold',
-          margin: '0 0 50px 0',
-          textAlign: 'center'
-        }}>
-          {message}
-        </p>
-        
-        <span style={{
-          color: '#f59e0b',
-          fontSize: '120px',
-          fontWeight: 'bold',
-          textAlign: 'center'
-        }}>
-          {count}
-        </span>
-      </div>
+    <div style={{ display: 'none' }}>
+      <canvas ref={canvasRef} />
     </div>
   );
 };
