@@ -32,17 +32,11 @@ export default function Calculator({ locale }: { locale?: string }) {
   // アクティビティの定義（他のstateの前に定義）
   const presetActivities = useMemo(() => {
     return [
-      { id: 'reading', name: t('activity_reading'), startAge: 5 },
-      { id: 'swimming', name: t('activity_swimming'), startAge: 5 },
-      { id: 'concert', name: t('activity_concert'), startAge: 15 },
       { id: 'coffee', name: t('activity_coffee'), startAge: 15 },
-      { id: 'hometown', name: t('activity_hometown'), startAge: 18 },
-      { id: 'ski', name: t('activity_ski'), startAge: 8 },
-      { id: 'travel', name: t('activity_travel'), startAge: 18 },
-      { id: 'friends', name: t('activity_friends'), startAge: 5 },
-      { id: 'parents', name: t('activity_parents'), startAge: 0 },
+      { id: 'reading', name: t('activity_reading'), startAge: 5 },
       { id: 'movie', name: t('activity_movie'), startAge: 5 },
-      { id: 'family', name: t('activity_family'), startAge: 0 },
+      { id: 'friends', name: t('activity_friends'), startAge: 5 },
+      { id: 'parents', name: t('activity_parents'), startAge: 0 }
     ];
   }, [t]);
   
