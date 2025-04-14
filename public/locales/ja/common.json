@@ -52,10 +52,5 @@
   "saveImage": "画像を保存",
   "popupBlocked": "ポップアップがブロックされました。設定でポップアップを許可してください。",
   "iosInstructions": "iOSの場合: 画像を長押し → 「写真に追加」を選択してください。",
-  "activities": {
-    "reading": "読書をする",
-    "movie": "映画を見る",
-    "friends": "友達と遊ぶ",
-    "parents": "親に会う"
-  }
+  "delete": "削除"
 } 

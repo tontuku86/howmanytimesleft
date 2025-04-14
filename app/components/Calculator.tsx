@@ -32,13 +32,17 @@ export default function Calculator({ locale }: { locale?: string }) {
   // アクティビティの定義（他のstateの前に定義）
   const presetActivities = useMemo(() => {
     return [
-      { id: 'reading', name: t('activities.reading'), startAge: 5 },
-      { id: 'swimming', name: t('activities.swimming'), startAge: 5 },
-      { id: 'concert', name: t('activities.concert'), startAge: 15 },
-      { id: 'coffee', name: t('activities.coffee'), startAge: 15 },
-      { id: 'hometown', name: t('activities.hometown'), startAge: 18 },
-      { id: 'ski', name: t('activities.ski'), startAge: 8 },
-      { id: 'travel', name: t('activities.travel'), startAge: 18 },
+      { id: 'reading', name: t('activity_reading'), startAge: 5 },
+      { id: 'swimming', name: t('activity_swimming'), startAge: 5 },
+      { id: 'concert', name: t('activity_concert'), startAge: 15 },
+      { id: 'coffee', name: t('activity_coffee'), startAge: 15 },
+      { id: 'hometown', name: t('activity_hometown'), startAge: 18 },
+      { id: 'ski', name: t('activity_ski'), startAge: 8 },
+      { id: 'travel', name: t('activity_travel'), startAge: 18 },
+      { id: 'friends', name: t('activity_friends'), startAge: 5 },
+      { id: 'parents', name: t('activity_parents'), startAge: 0 },
+      { id: 'movie', name: t('activity_movie'), startAge: 5 },
+      { id: 'family', name: t('activity_family'), startAge: 0 },
     ];
   }, [t]);
   
@@ -86,7 +90,7 @@ export default function Calculator({ locale }: { locale?: string }) {
             if (preset) {
               return {
                 ...prev,
-                name: t(`activities.${prev.id}`) || prev.name
+                name: t(`activity_${prev.id}`) || prev.name
               };
             }
             return prev;
@@ -94,7 +98,7 @@ export default function Calculator({ locale }: { locale?: string }) {
         });
       }
     }
-  }, [locale, i18n.language, presetActivities]);
+  }, [locale, i18n.language, presetActivities, t]);
 
   console.log('Calculator: Current state', {
     ageInputType,
@@ -175,16 +179,14 @@ export default function Calculator({ locale }: { locale?: string }) {
     
     // 現在のアクティビティだけを更新（新しく全部追加しない）
     const updatedActivities = currentIds.map(id => {
-      if (id === 'coffee') {
-        return { id: 'coffee', name: t('activity_coffee'), startAge: 20 };
-      } else if (id === 'reading') {
-        return { id: 'reading', name: t('activity_reading'), startAge: 10 };
-      } else if (id === 'movie') {
-        return { id: 'movie', name: t('activity_movie'), startAge: 5 };
-      } else if (id === 'friends') {
-        return { id: 'friends', name: t('activity_friends'), startAge: 5 };
-      } else if (id === 'parents') {
-        return { id: 'parents', name: t('activity_parents'), startAge: 0 };
+      // プリセットアクティビティの場合は、対応するt('activity_id')を使用
+      const preset = presetActivities.find(p => p.id === id);
+      if (preset) {
+        return { 
+          id: id, 
+          name: t(`activity_${id}`), 
+          startAge: preset.startAge 
+        };
       } else if (id.startsWith('custom-')) {
         // カスタム行動はそのまま保持
         const existingActivity = activities.find(a => a.id === id);
@@ -207,7 +209,7 @@ export default function Calculator({ locale }: { locale?: string }) {
     const updatedActivity = updatedActivities.find(a => a.id === currentId) || updatedActivities[0];
     setCurrentActivity(updatedActivity);
     
-  }, [i18n.language, t]);
+  }, [i18n.language, t, activities, currentActivity?.id, presetActivities]);
 
   const handleCalculate = () => {
     console.log('Calculator: Calculate button clicked');
