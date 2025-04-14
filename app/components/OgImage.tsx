@@ -44,86 +44,87 @@ const OgImage: React.FC<OgImageProps> = ({
       canvas.width = 1200;
       canvas.height = 630;
       
-      // 背景描画
-      ctx.fillStyle = '#0f172a'; // ダークブルー背景
+      // 背景描画 (紫色のグラデーション)
+      const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      gradient.addColorStop(0, '#5138ED');
+      gradient.addColorStop(1, '#673FD7');
+      ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-      
-      // カード部分の描画
-      ctx.fillStyle = 'rgba(30, 41, 59, 0.8)'; // ダークブルーのカード
-      roundRect(ctx, 50, 50, canvas.width - 100, canvas.height - 100, 20);
-      ctx.fill();
-      
-      // カードの枠線
-      ctx.strokeStyle = 'rgba(100, 116, 139, 0.5)';
-      ctx.lineWidth = 2;
-      ctx.stroke();
       
       // テキスト設定
       ctx.textAlign = 'center';
       
-      // タイトル
-      let title;
+      // メインメッセージ
+      let mainMessage;
       if (language === 'ja') {
-        title = 'あと何回？';
+        mainMessage = `あと${count}回、${activity}ができる。`;
       } else if (language === 'zh') {
-        title = '还能做多少次？';
+        mainMessage = `还能${activity} ${count}次。`;
       } else {
-        title = 'How Many Times Left?';
+        mainMessage = `You can ${activity} ${count} more times.`;
       }
       
       ctx.fillStyle = '#ffffff';
       ctx.font = 'bold 60px sans-serif';
-      ctx.fillText(title, canvas.width / 2, 150);
+      ctx.fillText(mainMessage, canvas.width / 2, canvas.height / 2 - 40);
       
-      // サブタイトル
-      let message;
+      // 残り割合テキスト
+      let progressText;
       if (language === 'ja') {
-        message = `あなたは${activity}をあと${count}回できます`;
+        progressText = '残り割合';
       } else if (language === 'zh') {
-        message = `你还能${activity}${count}次`;
+        progressText = '剩余比例';
       } else {
-        message = `You can ${activity} ${count} more times`;
+        progressText = 'Remaining';
       }
       
-      ctx.font = 'bold 50px sans-serif';
-      ctx.fillText(message, canvas.width / 2, canvas.height / 2 - 30);
+      ctx.font = 'normal 40px sans-serif';
+      ctx.fillText(progressText, canvas.width / 4, canvas.height / 2 + 80);
       
-      // 結果
-      ctx.fillStyle = '#f59e0b'; // オレンジ色
-      ctx.font = 'bold 120px sans-serif';
-      ctx.fillText(count.toString(), canvas.width / 2, canvas.height / 2 + 100);
+      // パーセンテージ
+      ctx.font = 'bold 50px sans-serif';
+      ctx.fillText(`${100 - percentage}%`, canvas.width * 3/4, canvas.height / 2 + 80);
       
       // プログレスバー背景
-      const progressBarY = canvas.height / 2 + 170;
-      ctx.fillStyle = '#4b5563'; // グレー
-      roundRect(ctx, 200, progressBarY, 800, 20, 10);
+      const progressBarY = canvas.height / 2 + 120;
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+      roundRect(ctx, 200, progressBarY, 800, 30, 15);
       ctx.fill();
       
       // プログレスバー
-      ctx.fillStyle = '#6366f1'; // インディゴ
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
       if (percentage > 0) {
-        roundRect(ctx, 200, progressBarY, 800 * ((100 - percentage) / 100), 20, 10);
+        roundRect(ctx, 200, progressBarY, 800 * ((100 - percentage) / 100), 30, 15);
         ctx.fill();
       }
       
-      // 進捗率テキスト
-      ctx.fillStyle = '#e5e7eb';
-      ctx.font = 'bold 24px sans-serif';
-      ctx.fillText(`${100 - percentage}%`, canvas.width / 2, progressBarY + 50);
-      
-      // 合計可能回数
+      // 合計回数
       let totalText;
       if (language === 'ja') {
-        totalText = `合計で${totalPossible}回可能`;
+        totalText = `生涯で合計${totalPossible}回`;
       } else if (language === 'zh') {
-        totalText = `一共可以${totalPossible}次`;
+        totalText = `一生总共${totalPossible}次`;
       } else {
-        totalText = `Total possible: ${totalPossible} times`;
+        totalText = `Total in lifetime: ${totalPossible} times`;
       }
       
-      ctx.fillStyle = '#9ca3af';
-      ctx.font = '24px sans-serif';
-      ctx.fillText(totalText, canvas.width / 2, progressBarY + 90);
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+      ctx.font = '30px sans-serif';
+      ctx.fillText(totalText, canvas.width / 2, progressBarY + 80);
+      
+      // ハッシュタグ
+      let hashtag;
+      if (language === 'ja') {
+        hashtag = '#あと何回';
+      } else if (language === 'zh') {
+        hashtag = '#还剩几次';
+      } else {
+        hashtag = '#howmanytimesleft';
+      }
+      
+      ctx.font = 'bold 30px sans-serif';
+      ctx.textAlign = 'right';
+      ctx.fillText(hashtag, canvas.width - 50, canvas.height - 50);
       
       // 画像URLを生成して親に渡す
       try {
@@ -157,17 +158,19 @@ const OgImage: React.FC<OgImageProps> = ({
         canvas.width = 800;
         canvas.height = 400;
         
-        ctx.fillStyle = '#0f172a';
+        const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        gradient.addColorStop(0, '#5138ED');
+        gradient.addColorStop(1, '#673FD7');
+        ctx.fillStyle = gradient;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         
         ctx.fillStyle = '#ffffff';
         ctx.font = 'bold 40px sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText('How Many Times Left?', canvas.width / 2, canvas.height / 2 - 60);
+        ctx.fillText(`あと${count}回`, canvas.width / 2, canvas.height / 2 - 30);
         
-        ctx.fillStyle = '#f59e0b';
-        ctx.font = 'bold 60px sans-serif';
-        ctx.fillText(count.toString(), canvas.width / 2, canvas.height / 2 + 20);
+        ctx.font = 'bold 30px sans-serif';
+        ctx.fillText('#あと何回', canvas.width - 50, canvas.height - 30);
         
         const dataUrl = canvas.toDataURL('image/png');
         console.log('OgImage: Generated fallback image URL of length:', dataUrl.length);
