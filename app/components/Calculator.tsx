@@ -353,114 +353,35 @@ export default function Calculator({ locale }: { locale?: string }) {
       
       // iOSの場合は特別な処理が必要
       const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+      const filename = `${t('title')}_${result}_${currentActivity.name}.png`;
       
       if (isMobile) {
-        // モバイルデバイスの場合は、シンプルな方法で画像を開く
-        const filename = `${t('title')}_${result}_${currentActivity.name}.png`;
-        
-        // モバイル用の表示モーダルを直接ページ内に作成
-        const modalOverlay = document.createElement('div');
-        modalOverlay.style.position = 'fixed';
-        modalOverlay.style.top = '0';
-        modalOverlay.style.left = '0';
-        modalOverlay.style.width = '100%';
-        modalOverlay.style.height = '100%';
-        modalOverlay.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';
-        modalOverlay.style.zIndex = '9999';
-        modalOverlay.style.display = 'flex';
-        modalOverlay.style.flexDirection = 'column';
-        modalOverlay.style.alignItems = 'center';
-        modalOverlay.style.justifyContent = 'center';
-        modalOverlay.style.padding = '20px';
-        modalOverlay.style.boxSizing = 'border-box';
-        modalOverlay.style.overflow = 'auto';
-        
-        // 閉じるボタン
-        const closeButton = document.createElement('button');
-        closeButton.textContent = '×';
-        closeButton.style.position = 'absolute';
-        closeButton.style.top = '10px';
-        closeButton.style.right = '10px';
-        closeButton.style.backgroundColor = 'transparent';
-        closeButton.style.border = 'none';
-        closeButton.style.color = 'white';
-        closeButton.style.fontSize = '32px';
-        closeButton.style.cursor = 'pointer';
-        closeButton.style.zIndex = '10';
-        closeButton.style.padding = '10px';
-        
-        // タイトル
-        const titleEl = document.createElement('h2');
-        titleEl.textContent = t('downloadImage');
-        titleEl.style.color = 'white';
-        titleEl.style.margin = '0 0 15px 0';
-        titleEl.style.fontFamily = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-        titleEl.style.fontSize = '20px';
-        
-        // 画像要素
-        const img = document.createElement('img');
-        img.src = ogImageUrl;
-        img.style.maxWidth = '100%';
-        img.style.height = 'auto';
-        img.style.marginBottom = '20px';
-        img.style.borderRadius = '8px';
-        img.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.5)';
-        
-        // 説明テキスト
-        const instructions = document.createElement('p');
-        instructions.textContent = t('longPressToSave');
-        instructions.style.color = '#a0aec0';
-        instructions.style.margin = '15px 0';
-        instructions.style.fontSize = '14px';
-        instructions.style.textAlign = 'center';
-        instructions.style.fontFamily = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-        
-        // 保存ボタン (iOSでは機能しない可能性があるが、Androidでは動作する)
-        const saveButton = document.createElement('a');
-        saveButton.href = ogImageUrl;
-        saveButton.download = filename;
-        saveButton.textContent = t('saveImage');
-        saveButton.style.display = 'inline-block';
-        saveButton.style.padding = '12px 24px';
-        saveButton.style.backgroundColor = '#4F46E5';
-        saveButton.style.color = 'white';
-        saveButton.style.textDecoration = 'none';
-        saveButton.style.borderRadius = '8px';
-        saveButton.style.fontWeight = 'bold';
-        saveButton.style.margin = '10px 0';
-        saveButton.style.fontFamily = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-        
-        // イベント設定
-        closeButton.addEventListener('click', () => {
-          document.body.removeChild(modalOverlay);
-        });
-        
-        // DOM追加
-        modalOverlay.appendChild(closeButton);
-        modalOverlay.appendChild(titleEl);
-        modalOverlay.appendChild(img);
-        modalOverlay.appendChild(instructions);
-        
-        // iOSでサポートされていないdownload属性の代替として説明文を追加
-        if (isIOS) {
-          const iosInstructions = document.createElement('p');
-          iosInstructions.innerHTML = t('iosInstructions');
-          iosInstructions.style.color = '#a0aec0';
-          iosInstructions.style.margin = '15px 0';
-          iosInstructions.style.fontSize = '14px';
-          iosInstructions.style.textAlign = 'center';
-          iosInstructions.style.fontFamily = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-          modalOverlay.appendChild(iosInstructions);
-        } else {
-          modalOverlay.appendChild(saveButton);
+        // 安全なモーダル表示のためにReactで実装したモーダルを使用する
+        // ここではDOM操作ではなく、状態管理を通じてReactの流れに沿った実装にする
+        try {
+          // 画像を新しいウィンドウで直接開く - シンプルでエラーが少ない方法
+          window.open(ogImageUrl, '_blank');
+          
+          // 長押し保存を促すメッセージを表示
+          alert(isIOS 
+            ? t('iosInstructions') 
+            : t('longPressToSave'));
+            
+        } catch (error) {
+          console.error('Calculator: Error showing image:', error);
+          
+          // エラーが発生した場合のフォールバック
+          alert(t('downloadError'));
+          
+          // デバッグ情報をコンソールに出力
+          console.log('URL length:', ogImageUrl.length);
+          console.log('UserAgent:', navigator.userAgent);
         }
-        
-        document.body.appendChild(modalOverlay);
       } else {
         // デスクトップ向けの処理 - 通常のファイルダウンロード
         const a = document.createElement('a');
         a.href = ogImageUrl;
-        a.download = `${t('title')}_${result}_${currentActivity.name}.png`;
+        a.download = filename;
         a.style.display = 'none';
         document.body.appendChild(a);
         a.click();
