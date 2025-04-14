@@ -347,54 +347,46 @@ export default function Calculator({ locale }: { locale?: string }) {
     console.log('Calculator: Downloading OGP image, URL length:', ogImageUrl.length);
     
     try {
-      // モバイルブラウザでの互換性向上のためのコード
+      // ダウンロード処理を単純化
       const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
       console.log('Calculator: Device is mobile:', isMobile);
       
-      if (isMobile) {
-        // モバイルデバイス向けの処理
-        // 新しいウィンドウで画像を開く
-        const newTab = window.open();
-        if (newTab) {
-          newTab.document.write(`
-            <html>
-              <head>
-                <title>${t('title')}_${result}_${currentActivity.name}</title>
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <style>
-                  body { margin: 0; padding: 10px; text-align: center; background: #f0f0f0; font-family: sans-serif; }
-                  img { max-width: 100%; height: auto; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24); }
-                  p { font-size: 14px; color: #666; margin-bottom: 20px; }
-                  .button { display: inline-block; background: #4F46E5; color: white; padding: 10px 15px; text-decoration: none; border-radius: 4px; font-weight: bold; }
-                </style>
-              </head>
-              <body>
-                <h2>${t('downloadImage')}</h2>
-                <img src="${ogImageUrl}" alt="${t('title')}_${result}" />
-                <p>${t('longPressToSave')}</p>
-                <a href="${ogImageUrl}" download="${t('title')}_${result}_${currentActivity.name}.png" class="button">${t('saveImage')}</a>
-              </body>
-            </html>
-          `);
-          newTab.document.close();
-        } else {
-          // ポップアップがブロックされた場合
-          alert(t('popupBlocked'));
-        }
-      } else {
-        // デスクトップデバイス向けの処理
-        const link = document.createElement('a');
-        link.href = ogImageUrl;
-        link.download = `${t('title')}_${result}_${currentActivity.name}.png`;
-        document.body.appendChild(link);
-        link.click();
-        
-        // 少し待ってからリンクを削除
-        setTimeout(() => {
-          document.body.removeChild(link);
-          console.log('Calculator: Download initiated successfully');
-        }, 100);
-      }
+      // Blobを作成してダウンロード
+      fetch(ogImageUrl)
+        .then(res => res.blob())
+        .then(blob => {
+          // BlobからURLを作成
+          const blobUrl = URL.createObjectURL(blob);
+          const filename = `${t('title')}_${result}_${currentActivity.name}.png`;
+          
+          if (isMobile) {
+            // モバイル向けの処理
+            const newTab = window.open(blobUrl);
+            if (!newTab) {
+              alert(t('popupBlocked'));
+            } else {
+              newTab.document.title = filename;
+            }
+          } else {
+            // デスクトップ向けの処理（a要素使用）
+            const a = document.createElement('a');
+            a.href = blobUrl;
+            a.download = filename;
+            a.style.display = 'none';
+            document.body.appendChild(a);
+            a.click();
+            
+            // クリーンアップ
+            setTimeout(() => {
+              document.body.removeChild(a);
+              URL.revokeObjectURL(blobUrl);
+            }, 100);
+          }
+        })
+        .catch(err => {
+          console.error('Calculator: Error processing image for download:', err);
+          alert(t('downloadError'));
+        });
     } catch (error) {
       console.error('Calculator: Error downloading image:', error);
       alert(t('downloadError'));
@@ -732,7 +724,7 @@ export default function Calculator({ locale }: { locale?: string }) {
           </div>
           
           {/* OGP画像生成（非表示） */}
-          <div className="hidden overflow-hidden w-0 h-0">
+          <div className="hidden">
             {result !== null && (
               <OgImage 
                 count={result} 
