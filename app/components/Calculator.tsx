@@ -11,6 +11,13 @@ import { zhCN } from 'date-fns/locale/zh-CN';
 import OgImage from './OgImage';
 import "react-datepicker/dist/react-datepicker.css";
 
+// Windowインターフェースを拡張
+declare global {
+  interface Window {
+    isIOSDevice?: boolean;
+  }
+}
+
 // 言語をDatepickerに登録
 registerLocale('ja', ja);
 registerLocale('en', enUS);
@@ -399,6 +406,9 @@ export default function Calculator({ locale }: { locale?: string }) {
           return;
         }
         
+        // iOSかAndroidかを判断
+        const isIOS = typeof window !== 'undefined' && window.isIOSDevice;
+        
         newTab.document.write(`
           <html>
             <head>
@@ -432,7 +442,7 @@ export default function Calculator({ locale }: { locale?: string }) {
             <body>
               <h2>${t('common.saveImage')}</h2>
               <div class="instructions">
-                ${t('common.isMobile') === 'iOS' ? 
+                ${isIOS ? 
                   `<p>${t('instructions.saveIOS')}</p>` : 
                   `<p>${t('instructions.saveAndroid')}</p>`
                 }
@@ -463,7 +473,16 @@ export default function Calculator({ locale }: { locale?: string }) {
   // 画面サイズの変更を検知
   useEffect(() => {
     const checkIsMobile = () => {
-      setIsMobile(window.innerWidth < 768 || /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
+      const mobileDetect = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      const isSmallScreen = window.innerWidth < 768;
+      const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+      
+      setIsMobile(isSmallScreen || mobileDetect);
+      
+      // iOSかAndroidかを判断するためのグローバル変数を設定
+      if (typeof window !== 'undefined') {
+        window.isIOSDevice = isIOS;
+      }
     };
     
     checkIsMobile();

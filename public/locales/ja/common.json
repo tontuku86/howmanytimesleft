@@ -52,5 +52,18 @@
   "saveImage": "画像を保存",
   "popupBlocked": "ポップアップがブロックされました。設定でポップアップを許可してください。",
   "iosInstructions": "iOSの場合: 画像を長押し → 「写真に追加」を選択してください。",
-  "delete": "削除"
+  "delete": "削除",
+  "common": {
+    "saveImage": "画像を保存",
+    "sharableImage": "共有用画像",
+    "isMobile": "mobile"
+  },
+  "instructions": {
+    "saveIOS": "画像を長押しして「写真に追加」を選択してください。",
+    "saveAndroid": "画像を長押しして保存してください。"
+  },
+  "error": {
+    "imageGeneration": "画像の生成中にエラーが発生しました。",
+    "download": "画像のダウンロード中にエラーが発生しました。"
+  }
 } 

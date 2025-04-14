@@ -52,5 +52,18 @@
   "saveImage": "Save Image",
   "popupBlocked": "Popup was blocked. Please allow popups in your browser settings.",
   "iosInstructions": "For iOS: Long press on the image → Select 'Add to Photos'.",
-  "delete": "Delete"
+  "delete": "Delete",
+  "common": {
+    "saveImage": "Save Image",
+    "sharableImage": "Sharable Image",
+    "isMobile": "mobile"
+  },
+  "instructions": {
+    "saveIOS": "Long press on the image and select 'Add to Photos'.",
+    "saveAndroid": "Long press on the image to save it."
+  },
+  "error": {
+    "imageGeneration": "An error occurred while generating the image.",
+    "download": "An error occurred while downloading the image."
+  }
 } 

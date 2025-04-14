@@ -52,5 +52,18 @@
   "saveImage": "保存图片",
   "popupBlocked": "弹出窗口被阻止。请在浏览器设置中允许弹出窗口。",
   "iosInstructions": "iOS设备: 长按图片 → 选择「添加到照片」。",
-  "delete": "删除"
+  "delete": "删除",
+  "common": {
+    "saveImage": "保存图片",
+    "sharableImage": "分享图片",
+    "isMobile": "mobile"
+  },
+  "instructions": {
+    "saveIOS": "长按图片并选择「添加到照片」。",
+    "saveAndroid": "长按图片保存。"
+  },
+  "error": {
+    "imageGeneration": "生成图像时发生错误。",
+    "download": "下载图像时发生错误。"
+  }
 } 
