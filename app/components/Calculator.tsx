@@ -347,7 +347,7 @@ export default function Calculator({ locale }: { locale?: string }) {
     console.log('Calculator: Downloading OGP image, URL length:', ogImageUrl.length);
     
     try {
-      // ダウンロード処理を単純化
+      // モバイルデバイス判定
       const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
       console.log('Calculator: Device is mobile:', isMobile);
       
@@ -360,13 +360,64 @@ export default function Calculator({ locale }: { locale?: string }) {
           const filename = `${t('title')}_${result}_${currentActivity.name}.png`;
           
           if (isMobile) {
-            // モバイル向けの処理
-            const newTab = window.open(blobUrl);
+            // モバイルデバイス向けの処理 - 画像保存ガイダンス付きのページを表示
+            const newTab = window.open();
             if (!newTab) {
               alert(t('popupBlocked'));
-            } else {
-              newTab.document.title = filename;
+              return;
             }
+            
+            // モバイル用のガイダンスページを作成
+            newTab.document.write(`
+              <html>
+                <head>
+                  <title>${filename}</title>
+                  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                  <style>
+                    body { 
+                      margin: 0; 
+                      padding: 16px; 
+                      text-align: center; 
+                      background: #1a202c; 
+                      color: #f7fafc; 
+                      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+                    }
+                    h2 { font-size: 20px; margin-bottom: 16px; }
+                    img { 
+                      max-width: 100%; 
+                      height: auto; 
+                      margin-bottom: 20px; 
+                      border-radius: 8px; 
+                      box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
+                    }
+                    p { font-size: 14px; color: #a0aec0; margin-bottom: 24px; line-height: 1.5; }
+                    .button { 
+                      display: inline-block; 
+                      background: #4F46E5; 
+                      color: white; 
+                      padding: 12px 20px; 
+                      text-decoration: none; 
+                      border-radius: 8px; 
+                      font-weight: bold; 
+                      margin-bottom: 16px;
+                    }
+                    .footer { 
+                      margin-top: 32px; 
+                      font-size: 12px; 
+                      color: #718096; 
+                    }
+                  </style>
+                </head>
+                <body>
+                  <h2>${t('downloadImage')}</h2>
+                  <img src="${blobUrl}" alt="${t('title')}_${result}" />
+                  <p>${t('longPressToSave')}</p>
+                  <a href="${blobUrl}" download="${filename}" class="button">${t('saveImage')}</a>
+                  <div class="footer">howmanytimesleft.com</div>
+                </body>
+              </html>
+            `);
+            newTab.document.close();
           } else {
             // デスクトップ向けの処理（a要素使用）
             const a = document.createElement('a');
