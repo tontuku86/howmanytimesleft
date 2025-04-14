@@ -351,93 +351,125 @@ export default function Calculator({ locale }: { locale?: string }) {
       const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
       console.log('Calculator: Device is mobile:', isMobile);
       
-      // Blobを作成してダウンロード
-      fetch(ogImageUrl)
-        .then(res => res.blob())
-        .then(blob => {
-          // BlobからURLを作成
-          const blobUrl = URL.createObjectURL(blob);
-          const filename = `${t('title')}_${result}_${currentActivity.name}.png`;
-          
-          if (isMobile) {
-            // モバイルデバイス向けの処理 - 画像保存ガイダンス付きのページを表示
-            const newTab = window.open();
-            if (!newTab) {
-              alert(t('popupBlocked'));
-              return;
-            }
-            
-            // モバイル用のガイダンスページを作成
-            newTab.document.write(`
-              <html>
-                <head>
-                  <title>${filename}</title>
-                  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                  <style>
-                    body { 
-                      margin: 0; 
-                      padding: 16px; 
-                      text-align: center; 
-                      background: #1a202c; 
-                      color: #f7fafc; 
-                      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
-                    }
-                    h2 { font-size: 20px; margin-bottom: 16px; }
-                    img { 
-                      max-width: 100%; 
-                      height: auto; 
-                      margin-bottom: 20px; 
-                      border-radius: 8px; 
-                      box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
-                    }
-                    p { font-size: 14px; color: #a0aec0; margin-bottom: 24px; line-height: 1.5; }
-                    .button { 
-                      display: inline-block; 
-                      background: #4F46E5; 
-                      color: white; 
-                      padding: 12px 20px; 
-                      text-decoration: none; 
-                      border-radius: 8px; 
-                      font-weight: bold; 
-                      margin-bottom: 16px;
-                    }
-                    .footer { 
-                      margin-top: 32px; 
-                      font-size: 12px; 
-                      color: #718096; 
-                    }
-                  </style>
-                </head>
-                <body>
-                  <h2>${t('downloadImage')}</h2>
-                  <img src="${blobUrl}" alt="${t('title')}_${result}" />
-                  <p>${t('longPressToSave')}</p>
-                  <a href="${blobUrl}" download="${filename}" class="button">${t('saveImage')}</a>
-                  <div class="footer">howmanytimesleft.com</div>
-                </body>
-              </html>
-            `);
-            newTab.document.close();
-          } else {
-            // デスクトップ向けの処理（a要素使用）
-            const a = document.createElement('a');
-            a.href = blobUrl;
-            a.download = filename;
-            a.style.display = 'none';
-            document.body.appendChild(a);
-            a.click();
-            
-            // クリーンアップ
-            setTimeout(() => {
-              document.body.removeChild(a);
-              URL.revokeObjectURL(blobUrl);
-            }, 100);
-          }
-        })
-        .catch(err => {
-          console.error('Calculator: Error processing image for download:', err);
-          alert(t('downloadError'));
+      // iOSの場合は特別な処理が必要
+      const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+      
+      if (isMobile) {
+        // モバイルデバイスの場合は、シンプルな方法で画像を開く
+        const filename = `${t('title')}_${result}_${currentActivity.name}.png`;
+        
+        // モバイル用の表示モーダルを直接ページ内に作成
+        const modalOverlay = document.createElement('div');
+        modalOverlay.style.position = 'fixed';
+        modalOverlay.style.top = '0';
+        modalOverlay.style.left = '0';
+        modalOverlay.style.width = '100%';
+        modalOverlay.style.height = '100%';
+        modalOverlay.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';
+        modalOverlay.style.zIndex = '9999';
+        modalOverlay.style.display = 'flex';
+        modalOverlay.style.flexDirection = 'column';
+        modalOverlay.style.alignItems = 'center';
+        modalOverlay.style.justifyContent = 'center';
+        modalOverlay.style.padding = '20px';
+        modalOverlay.style.boxSizing = 'border-box';
+        modalOverlay.style.overflow = 'auto';
+        
+        // 閉じるボタン
+        const closeButton = document.createElement('button');
+        closeButton.textContent = '×';
+        closeButton.style.position = 'absolute';
+        closeButton.style.top = '10px';
+        closeButton.style.right = '10px';
+        closeButton.style.backgroundColor = 'transparent';
+        closeButton.style.border = 'none';
+        closeButton.style.color = 'white';
+        closeButton.style.fontSize = '32px';
+        closeButton.style.cursor = 'pointer';
+        closeButton.style.zIndex = '10';
+        closeButton.style.padding = '10px';
+        
+        // タイトル
+        const titleEl = document.createElement('h2');
+        titleEl.textContent = t('downloadImage');
+        titleEl.style.color = 'white';
+        titleEl.style.margin = '0 0 15px 0';
+        titleEl.style.fontFamily = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+        titleEl.style.fontSize = '20px';
+        
+        // 画像要素
+        const img = document.createElement('img');
+        img.src = ogImageUrl;
+        img.style.maxWidth = '100%';
+        img.style.height = 'auto';
+        img.style.marginBottom = '20px';
+        img.style.borderRadius = '8px';
+        img.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.5)';
+        
+        // 説明テキスト
+        const instructions = document.createElement('p');
+        instructions.textContent = t('longPressToSave');
+        instructions.style.color = '#a0aec0';
+        instructions.style.margin = '15px 0';
+        instructions.style.fontSize = '14px';
+        instructions.style.textAlign = 'center';
+        instructions.style.fontFamily = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+        
+        // 保存ボタン (iOSでは機能しない可能性があるが、Androidでは動作する)
+        const saveButton = document.createElement('a');
+        saveButton.href = ogImageUrl;
+        saveButton.download = filename;
+        saveButton.textContent = t('saveImage');
+        saveButton.style.display = 'inline-block';
+        saveButton.style.padding = '12px 24px';
+        saveButton.style.backgroundColor = '#4F46E5';
+        saveButton.style.color = 'white';
+        saveButton.style.textDecoration = 'none';
+        saveButton.style.borderRadius = '8px';
+        saveButton.style.fontWeight = 'bold';
+        saveButton.style.margin = '10px 0';
+        saveButton.style.fontFamily = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+        
+        // イベント設定
+        closeButton.addEventListener('click', () => {
+          document.body.removeChild(modalOverlay);
         });
+        
+        // DOM追加
+        modalOverlay.appendChild(closeButton);
+        modalOverlay.appendChild(titleEl);
+        modalOverlay.appendChild(img);
+        modalOverlay.appendChild(instructions);
+        
+        // iOSでサポートされていないdownload属性の代替として説明文を追加
+        if (isIOS) {
+          const iosInstructions = document.createElement('p');
+          iosInstructions.innerHTML = t('iosInstructions');
+          iosInstructions.style.color = '#a0aec0';
+          iosInstructions.style.margin = '15px 0';
+          iosInstructions.style.fontSize = '14px';
+          iosInstructions.style.textAlign = 'center';
+          iosInstructions.style.fontFamily = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+          modalOverlay.appendChild(iosInstructions);
+        } else {
+          modalOverlay.appendChild(saveButton);
+        }
+        
+        document.body.appendChild(modalOverlay);
+      } else {
+        // デスクトップ向けの処理 - 通常のファイルダウンロード
+        const a = document.createElement('a');
+        a.href = ogImageUrl;
+        a.download = `${t('title')}_${result}_${currentActivity.name}.png`;
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        
+        // クリーンアップ
+        setTimeout(() => {
+          document.body.removeChild(a);
+        }, 100);
+      }
     } catch (error) {
       console.error('Calculator: Error downloading image:', error);
       alert(t('downloadError'));

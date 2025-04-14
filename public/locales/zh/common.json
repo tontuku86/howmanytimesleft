@@ -51,6 +51,7 @@
   "longPressToSave": "长按图片保存",
   "saveImage": "保存图片",
   "popupBlocked": "弹出窗口被阻止。请在浏览器设置中允许弹出窗口。",
+  "iosInstructions": "iOS设备: 长按图片 → 选择「添加到照片」。",
   "activities": {
     "reading": "读书",
     "movie": "看电影",

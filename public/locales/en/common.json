@@ -51,6 +51,7 @@
   "longPressToSave": "Long press on the image to save it",
   "saveImage": "Save Image",
   "popupBlocked": "Popup was blocked. Please allow popups in your browser settings.",
+  "iosInstructions": "For iOS: Long press on the image → Select 'Add to Photos'.",
   "activities": {
     "reading": "Read Books",
     "movie": "Watch Movies",
