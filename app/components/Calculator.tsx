@@ -347,17 +347,54 @@ export default function Calculator({ locale }: { locale?: string }) {
     console.log('Calculator: Downloading OGP image, URL length:', ogImageUrl.length);
     
     try {
-      const link = document.createElement('a');
-      link.href = ogImageUrl;
-      link.download = `${t('title')}_${result}_${currentActivity.name}.png`;
-      document.body.appendChild(link);
-      link.click();
+      // モバイルブラウザでの互換性向上のためのコード
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      console.log('Calculator: Device is mobile:', isMobile);
       
-      // 少し待ってからリンクを削除
-      setTimeout(() => {
-        document.body.removeChild(link);
-        console.log('Calculator: Download initiated successfully');
-      }, 100);
+      if (isMobile) {
+        // モバイルデバイス向けの処理
+        // 新しいウィンドウで画像を開く
+        const newTab = window.open();
+        if (newTab) {
+          newTab.document.write(`
+            <html>
+              <head>
+                <title>${t('title')}_${result}_${currentActivity.name}</title>
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <style>
+                  body { margin: 0; padding: 10px; text-align: center; background: #f0f0f0; font-family: sans-serif; }
+                  img { max-width: 100%; height: auto; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24); }
+                  p { font-size: 14px; color: #666; margin-bottom: 20px; }
+                  .button { display: inline-block; background: #4F46E5; color: white; padding: 10px 15px; text-decoration: none; border-radius: 4px; font-weight: bold; }
+                </style>
+              </head>
+              <body>
+                <h2>${t('downloadImage')}</h2>
+                <img src="${ogImageUrl}" alt="${t('title')}_${result}" />
+                <p>${t('longPressToSave')}</p>
+                <a href="${ogImageUrl}" download="${t('title')}_${result}_${currentActivity.name}.png" class="button">${t('saveImage')}</a>
+              </body>
+            </html>
+          `);
+          newTab.document.close();
+        } else {
+          // ポップアップがブロックされた場合
+          alert(t('popupBlocked'));
+        }
+      } else {
+        // デスクトップデバイス向けの処理
+        const link = document.createElement('a');
+        link.href = ogImageUrl;
+        link.download = `${t('title')}_${result}_${currentActivity.name}.png`;
+        document.body.appendChild(link);
+        link.click();
+        
+        // 少し待ってからリンクを削除
+        setTimeout(() => {
+          document.body.removeChild(link);
+          console.log('Calculator: Download initiated successfully');
+        }, 100);
+      }
     } catch (error) {
       console.error('Calculator: Error downloading image:', error);
       alert(t('downloadError'));
@@ -702,8 +739,6 @@ export default function Calculator({ locale }: { locale?: string }) {
                 activity={currentActivity.name}
                 language={i18n.language?.substring(0, 2) || 'ja'}
                 onImageGenerated={handleImageGenerated}
-                percentage={percentage}
-                totalPossible={totalPossible}
               />
             )}
           </div>

@@ -48,6 +48,9 @@
   "downloadImage": "画像をダウンロード",
   "noImageAvailable": "画像が生成されていません。計算後にもう一度お試しください。",
   "downloadError": "画像のダウンロード中にエラーが発生しました。",
+  "longPressToSave": "画像を長押しして保存してください",
+  "saveImage": "画像を保存",
+  "popupBlocked": "ポップアップがブロックされました。設定でポップアップを許可してください。",
   "activities": {
     "reading": "読書をする",
     "movie": "映画を見る",

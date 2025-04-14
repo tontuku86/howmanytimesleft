@@ -48,6 +48,9 @@
   "downloadImage": "Download Image",
   "noImageAvailable": "No image available yet. Please try again after calculation.",
   "downloadError": "An error occurred while downloading the image.",
+  "longPressToSave": "Long press on the image to save it",
+  "saveImage": "Save Image",
+  "popupBlocked": "Popup was blocked. Please allow popups in your browser settings.",
   "activities": {
     "reading": "Read Books",
     "movie": "Watch Movies",

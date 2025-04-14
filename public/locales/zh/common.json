@@ -48,6 +48,9 @@
   "downloadImage": "下载图片",
   "noImageAvailable": "目前没有可用图像。请在计算后重试。",
   "downloadError": "下载图像时发生错误。",
+  "longPressToSave": "长按图片保存",
+  "saveImage": "保存图片",
+  "popupBlocked": "弹出窗口被阻止。请在浏览器设置中允许弹出窗口。",
   "activities": {
     "reading": "读书",
     "movie": "看电影",
