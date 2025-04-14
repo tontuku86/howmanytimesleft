@@ -199,114 +199,65 @@ export default function Calculator({ locale }: { locale?: string }) {
     
     // 空の場合はデフォルトのコーヒーを追加
     if (updatedActivities.length === 0) {
-      updatedActivities.push({ id: 'coffee', name: t('activity_coffee'), startAge: 20 });
+      updatedActivities.push({ id: 'coffee', name: t('activity_coffee'), startAge: 15 });
     }
     
-    console.log('Calculator: Updating activities with new translations when locale changes');
+    console.log('Calculator: Updating activities with translations', updatedActivities);
     setActivities(updatedActivities);
     
-    // 現在のアクティビティが存在する場合は更新、存在しない場合は最初のアクティビティを選択
-    const currentId = currentActivity?.id || 'coffee';
-    const updatedActivity = updatedActivities.find(a => a.id === currentId) || updatedActivities[0];
-    setCurrentActivity(updatedActivity);
-    
-  }, [i18n.language, t, activities, currentActivity?.id, presetActivities]);
-
-  const handleCalculate = () => {
-    console.log('Calculator: Calculate button clicked');
-    
-    if (
-      currentAge === '' || 
-      expectedLifespan === '' || 
-      frequencyValue === '' ||
-      typeof currentAge !== 'number' ||
-      typeof expectedLifespan !== 'number' ||
-      typeof frequencyValue !== 'number'
-    ) {
-      console.log('Calculator: Invalid input values, calculation aborted');
-      return;
+    // 現在のアクティビティも更新
+    const currentId = currentActivity.id;
+    const updated = updatedActivities.find(a => a.id === currentId);
+    if (updated) {
+      setCurrentActivity(updated);
+    } else if (updatedActivities.length > 0) {
+      setCurrentActivity(updatedActivities[0]);
     }
+  }, [t, i18n.language]);
 
-    // 現在のアクティビティの開始年齢を考慮
-    const effectiveAge = Math.max(currentAge, currentActivity.startAge);
-    const yearsLeft = expectedLifespan - effectiveAge;
-    const yearsPassed = Math.max(0, effectiveAge - currentActivity.startAge);
-    
-    console.log('Calculator: Calculation parameters', {
-      currentAge,
-      expectedLifespan,
-      startAge: currentActivity.startAge,
-      effectiveAge,
-      yearsLeft,
-      yearsPassed,
-      frequencyType,
-      frequencyValue
-    });
-    
-    if (yearsLeft <= 0) {
-      console.log('Calculator: No years left, setting results to 0');
-      setResult(0);
-      setPercentage(0);
-      setTotalPossible(0);
-      return;
+  // 年齢入力タイプの変更イベント
+  const handleAgeInputTypeChange = (type: AgeInputType) => {
+    setAgeInputType(type);
+    if (type === 'birthdate' && !birthdate) {
+      const defaultBirthDate = new Date();
+      defaultBirthDate.setFullYear(defaultBirthDate.getFullYear() - 30);
+      setBirthdate(defaultBirthDate);
     }
-
-    let timesLeft = 0;
-    let totalPossibleTimes = 0;
-    const daysInYear = 365.25;
-    
-    switch (frequencyType) {
-      case 'times-per-day':
-        timesLeft = Math.round(yearsLeft * daysInYear * frequencyValue);
-        totalPossibleTimes = Math.round((yearsLeft + yearsPassed) * daysInYear * frequencyValue);
-        break;
-      case 'times-per-week':
-        timesLeft = Math.round(yearsLeft * 52 * frequencyValue);
-        totalPossibleTimes = Math.round((yearsLeft + yearsPassed) * 52 * frequencyValue);
-        break;
-      case 'times-per-month':
-        timesLeft = Math.round(yearsLeft * 12 * frequencyValue);
-        totalPossibleTimes = Math.round((yearsLeft + yearsPassed) * 12 * frequencyValue);
-        break;
-      case 'times-per-year':
-        timesLeft = Math.round(yearsLeft * frequencyValue);
-        totalPossibleTimes = Math.round((yearsLeft + yearsPassed) * frequencyValue);
-        break;
-    }
-    
-    console.log('Calculator: Calculation results', { timesLeft, totalPossibleTimes });
-    
-    setResult(timesLeft);
-    setTotalPossible(totalPossibleTimes);
-    setPercentage(Math.round((timesLeft / totalPossibleTimes) * 100));
-    
-    // 計算後に自動的に画像生成を開始する
-    setRemainingCount(timesLeft);
-    setSelectedActivity(currentActivity.id);
-    setIsGeneratingImage(true);
   };
 
-  // datepickerの言語設定を取得する関数
-  const getLocale = useCallback(() => {
-    const locale = i18n.language?.substring(0, 2) || 'ja';
-    return locale === 'ja' ? ja : locale === 'zh' ? zhCN : enUS;
-  }, [i18n.language]);
-
-  // 日付選択のハンドラー
-  const handleDateChange = useCallback((date: Date | null) => {
-    console.log('Calculator: Date selected', date);
+  // 日付選択イベント
+  const handleDateChange = (date: Date | null) => {
     setBirthdate(date);
-  }, []);
+  };
+
+  // 日付選択のロケール取得
+  const getLocale = () => {
+    const lang = i18n.language?.substring(0, 2) || 'ja';
+    switch (lang) {
+      case 'en': return enUS;
+      case 'zh': return zhCN;
+      default: return ja;
+    }
+  };
+
+  // アクティビティの選択
+  const handleSelectActivity = (id: string) => {
+    const selected = activities.find(a => a.id === id);
+    if (selected) {
+      console.log('Calculator: Selected activity', selected);
+      setCurrentActivity(selected);
+    }
+  };
 
   // カスタムアクティビティの追加
   const handleAddCustomActivity = () => {
     if (!customActivity.trim()) return;
     
-    const newId = `custom-${Date.now()}`;
+    const customId = `custom-${Date.now()}`;
     const newActivity = {
-      id: newId,
+      id: customId,
       name: customActivity,
-      startAge: currentActivity.startAge
+      startAge: 0
     };
     
     console.log('Calculator: Adding custom activity', newActivity);
@@ -316,27 +267,22 @@ export default function Calculator({ locale }: { locale?: string }) {
     setShowAddActivity(false);
   };
 
-  // アクティビティの選択
-  const handleSelectActivity = (activityId: string) => {
-    const selectedActivity = activities.find(a => a.id === activityId);
-    if (selectedActivity) {
-      console.log('Calculator: Selected activity', selectedActivity);
-      setCurrentActivity(selectedActivity);
-    }
-  };
-
   // アクティビティの削除
-  const handleDeleteActivity = (activityId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleDeleteActivity = (id: string, e: React.MouseEvent) => {
+    e.preventDefault();
     
-    if (activities.length <= 1) return; // 少なくとも1つは残す
+    // 最低1つは保持する必要がある
+    if (activities.length <= 1) {
+      return;
+    }
     
-    console.log('Calculator: Deleting activity', activityId);
-    const newActivities = activities.filter(a => a.id !== activityId);
+    console.log('Calculator: Removing activity with id', id);
+    const newActivities = activities.filter(a => a.id !== id);
     setActivities(newActivities);
     
-    // 現在選択されているアクティビティが削除された場合、最初のアクティビティを選択
-    if (currentActivity.id === activityId) {
+    // 現在選択されているアクティビティが削除された場合は、リスト内の別のアクティビティを選択
+    if (currentActivity.id === id && newActivities.length > 0) {
+      console.log('Calculator: Current activity was deleted, selecting another one');
       setCurrentActivity(newActivities[0]);
     }
   };
@@ -355,6 +301,12 @@ export default function Calculator({ locale }: { locale?: string }) {
     setCurrentActivity(preset);
     setShowAddActivity(false);
   };
+
+  // アクティビティIDから名前を取得する関数
+  const getActivityNameById = useCallback((id: string): string => {
+    const activity = presetActivities.find(a => a.id === id);
+    return activity ? activity.name : t('common.activity');
+  }, [presetActivities, t]);
 
   // OGP画像が生成されたときのハンドラー
   const handleImageGenerated = useCallback((dataUrl: string) => {
@@ -397,70 +349,77 @@ export default function Calculator({ locale }: { locale?: string }) {
     }
 
     try {
-      // モバイルの場合は新しいタブで開く（ダウンロードが信頼性が低いため）
+      // まず直接ダウンロードを試みる（モバイルでもデスクトップでも）
+      const link = document.createElement('a');
+      link.href = imageUrl;
+      const selectedActivityName = getActivityNameById(selectedActivity);
+      link.download = `howmanytimes-${selectedActivityName}-${remainingCount}.png`;
+      document.body.appendChild(link);
+      
+      console.log('Calculator: Attempting direct download');
+      link.click();
+      document.body.removeChild(link);
+      
+      // iOSやAndroidで直接ダウンロードが失敗した場合のフォールバック
       if (isMobile) {
-        const newTab = window.open();
-        if (!newTab) {
-          console.error('Failed to open new tab for image');
-          setDownloadError(t('error.popupBlocked'));
-          return;
-        }
-        
-        // iOSかAndroidかを判断
-        const isIOS = typeof window !== 'undefined' && window.isIOSDevice;
-        
-        newTab.document.write(`
-          <html>
-            <head>
-              <title>${t('common.saveImage')}</title>
-              <meta name="viewport" content="width=device-width, initial-scale=1.0">
-              <style>
-                body { 
-                  margin: 0; 
-                  padding: 20px; 
-                  background: #1e293b; 
-                  color: white; 
-                  font-family: sans-serif;
-                  text-align: center;
-                }
-                img { 
-                  max-width: 100%; 
-                  height: auto; 
-                  margin: 20px auto;
-                  border: 1px solid #64748b;
-                  border-radius: 8px;
-                }
-                .instructions {
-                  background: rgba(255,255,255,0.1);
-                  padding: 15px;
-                  border-radius: 8px;
-                  margin: 20px auto;
-                  max-width: 500px;
-                }
-              </style>
-            </head>
-            <body>
-              <h2>${t('common.saveImage')}</h2>
-              <div class="instructions">
-                ${isIOS ? 
-                  `<p>${t('instructions.saveIOS')}</p>` : 
-                  `<p>${t('instructions.saveAndroid')}</p>`
-                }
-              </div>
-              <img src="${imageUrl}" alt="${t('common.sharableImage')}" />
-            </body>
-          </html>
-        `);
-        newTab.document.close();
-      } else {
-        // デスクトップの場合は通常のダウンロード
-        const link = document.createElement('a');
-        link.href = imageUrl;
-        const selectedActivityName = getActivityNameById(selectedActivity);
-        link.download = `howmanytimes-${selectedActivityName}-${remainingCount}.png`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        // 少し遅延させてからフォールバック処理を実行
+        setTimeout(() => {
+          // モバイルの場合、新しいタブで画像を表示するフォールバックを自動的に実行
+          console.log('Calculator: Opening fallback method for mobile');
+          const newTab = window.open();
+          if (!newTab) {
+            console.error('Failed to open new tab for image');
+            setDownloadError(t('error.popupBlocked'));
+            return;
+          }
+          
+          // iOSかAndroidかを判断
+          const isIOS = typeof window !== 'undefined' && window.isIOSDevice;
+          
+          newTab.document.write(`
+            <html>
+              <head>
+                <title>${t('common.saveImage')}</title>
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <style>
+                  body { 
+                    margin: 0; 
+                    padding: 20px; 
+                    background: #1e293b; 
+                    color: white; 
+                    font-family: sans-serif;
+                    text-align: center;
+                  }
+                  img { 
+                    max-width: 100%; 
+                    height: auto; 
+                    margin: 20px auto;
+                    border: 1px solid #64748b;
+                    border-radius: 8px;
+                  }
+                  .instructions {
+                    background: rgba(255,255,255,0.1);
+                    padding: 15px;
+                    border-radius: 8px;
+                    margin: 20px auto;
+                    max-width: 500px;
+                  }
+                </style>
+              </head>
+              <body>
+                <h2>${t('common.saveImage')}</h2>
+                <div class="instructions">
+                  ${isIOS ? 
+                    `<p>${t('instructions.saveIOS')}</p>` : 
+                    `<p>${t('instructions.saveAndroid')}</p>`
+                  }
+                </div>
+                <img src="${imageUrl}" alt="${t('common.sharableImage')}" />
+              </body>
+            </html>
+          `);
+          newTab.document.close();
+        }, 500); // フォールバック処理までの遅延を短縮
       }
 
       setDownloadError('');
@@ -468,7 +427,7 @@ export default function Calculator({ locale }: { locale?: string }) {
       console.error('Error downloading image:', error);
       setDownloadError(t('error.download'));
     }
-  }, [imageUrl, isMobile, remainingCount, selectedActivity, t]);
+  }, [imageUrl, isMobile, remainingCount, selectedActivity, t, result, getActivityNameById]);
 
   // 画面サイズの変更を検知
   useEffect(() => {
@@ -573,12 +532,6 @@ export default function Calculator({ locale }: { locale?: string }) {
     }, 500);
     
   }, [currentAge, expectedLifespan, frequencyValue, frequencyType, currentActivity.startAge, currentActivity.id]);
-
-  // アクティビティIDから名前を取得する関数
-  const getActivityNameById = useCallback((id: string): string => {
-    const activity = presetActivities.find(a => a.id === id);
-    return activity ? activity.name : t('common.activity');
-  }, [presetActivities, t]);
 
   return (
     <div className="w-full max-w-lg mx-auto bg-gray-800/90 backdrop-blur-sm rounded-xl shadow-xl p-6 border border-gray-700/50">
