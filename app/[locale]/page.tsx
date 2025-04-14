@@ -2,10 +2,10 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import Calculator from '../components/Calculator';
-import LanguageSwitcher from '../components/LanguageSwitcher';
+import Calculator from '@/app/components/Calculator';
+import LanguageSwitcher from '@/app/components/LanguageSwitcher';
 import { useTranslation } from 'react-i18next';
-import '../i18n/client';
+import '@/app/i18n/client';
 
 export default function Home() {
   const params = useParams();

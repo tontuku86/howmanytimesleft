@@ -1,221 +1,67 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
+import html2canvas from 'html2canvas';
 
 interface OgImageProps {
-  count: number;
-  activity: string;
-  language: string;
-  onImageGenerated?: (dataUrl: string) => void;
-  percentage?: number | null;
-  totalPossible?: number | null;
+  elementId: string;
+  onImageGenerated: (dataUrl: string) => void;
+  options?: Html2CanvasOptions;
+  trigger?: boolean;
 }
 
-export default function OgImage({ count, activity, language, onImageGenerated, percentage = null, totalPossible = null }: OgImageProps) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+interface Html2CanvasOptions {
+  scale?: number;
+  useCORS?: boolean;
+  backgroundColor?: string;
+  logging?: boolean;
+  allowTaint?: boolean;
+  foreignObjectRendering?: boolean;
+}
 
+const OgImage: React.FC<OgImageProps> = ({
+  elementId,
+  onImageGenerated,
+  options = {},
+  trigger = false,
+}) => {
   useEffect(() => {
-    if (canvasRef.current && onImageGenerated) {
-      console.log('OgImage: Creating image directly with canvas for', activity, count, language);
+    if (!trigger) return;
+
+    // 少し遅延させてDOM要素が完全にレンダリングされるのを待つ
+    const timeoutId = setTimeout(() => {
+      const element = document.getElementById(elementId);
       
-      try {
-        const canvas = canvasRef.current;
-        const ctx = canvas.getContext('2d');
+      if (element) {
+        console.log(`OgImage: Generating image from element #${elementId}`);
         
-        if (!ctx) {
-          console.error('OgImage: Could not get 2D context');
-          return;
-        }
-        
-        // キャンバスサイズ設定
-        const width = 1200;
-        const height = 630;
-        canvas.width = width;
-        canvas.height = height;
-        
-        // 背景グラデーション - よりシンプルな直線グラデーション
-        const gradient = ctx.createLinearGradient(0, 0, 0, height);
-        gradient.addColorStop(0, '#4F46E5');  // indigo-600
-        gradient.addColorStop(1, '#4338CA');  // indigo-700
-        ctx.fillStyle = gradient;
-        ctx.fillRect(0, 0, width, height);
-        
-        // 結果テキスト
-        const resultText = getLanguageText();
-        ctx.font = 'bold 70px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillStyle = 'white';
-        ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
-        ctx.shadowBlur = 10;
-        ctx.shadowOffsetX = 2;
-        ctx.shadowOffsetY = 2;
-        
-        // 長いテキストを複数行に分割
-        const maxLineWidth = width * 0.85;
-        const words = resultText.split(' ');
-        let currentLine = '';
-        let lines = [];
-        
-        // 英語と中国語の場合は単語分割
-        if (language === 'en') {
-          for (let i = 0; i < words.length; i++) {
-            const testLine = currentLine + words[i] + ' ';
-            const metrics = ctx.measureText(testLine);
-            if (metrics.width > maxLineWidth && i > 0) {
-              lines.push(currentLine);
-              currentLine = words[i] + ' ';
-            } else {
-              currentLine = testLine;
-            }
-          }
-          if (currentLine) lines.push(currentLine);
-        } 
-        // 日本語と中国語は文字数で分割
-        else {
-          // 日本語のテキスト幅を正確に測定して分割
-          if (language === 'ja') {
-            let currentText = '';
-            for (let i = 0; i < resultText.length; i++) {
-              const testText = currentText + resultText[i];
-              const metrics = ctx.measureText(testText);
-              
-              if (metrics.width > maxLineWidth && currentText !== '') {
-                lines.push(currentText);
-                currentText = resultText[i];
-              } else {
-                currentText = testText;
-              }
-            }
-            if (currentText) lines.push(currentText);
-          } 
-          // 中国語は固定文字数で分割
-          else {
-            const charsPerLine = 12;
-            for (let i = 0; i < resultText.length; i += charsPerLine) {
-              lines.push(resultText.substr(i, charsPerLine));
-            }
-          }
-        }
-        
-        // 複数行のテキストを描画 - 中央上部に配置
-        const lineHeight = 100;
-        let yPos = height * 0.3;
-        if (lines.length > 1) {
-          yPos = height * 0.3 - ((lines.length - 1) * lineHeight) / 2;
-        }
-        
-        for (let i = 0; i < lines.length; i++) {
-          ctx.fillText(lines[i], width / 2, yPos + i * lineHeight);
-        }
-        
-        // プログレスバーとパーセンテージの描画（渡された場合）
-        if (percentage !== null) {
-          // パーセンテージラベル
-          const remainingText = language === 'en' ? 'Remaining' : 
-                             language === 'zh' ? '剩余比例' : '残り割合';
-          
-          // 影の設定を解除
-          ctx.shadowBlur = 0;
-          ctx.shadowOffsetX = 0;
-          ctx.shadowOffsetY = 0;
-          
-          ctx.font = 'normal 32px sans-serif';
-          ctx.textAlign = 'left';
-          ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-          ctx.fillText(remainingText, width * 0.2, height * 0.55);
-          
-          // パーセンテージ値
-          const percentageValue = Math.round(100 - percentage) + '%';
-          ctx.textAlign = 'right';
-          ctx.fillText(percentageValue, width * 0.8, height * 0.55);
-          
-          // プログレスバー背景
-          ctx.fillStyle = 'rgba(75, 85, 99, 0.4)';
-          const barWidth = width * 0.6;
-          const barHeight = 24;
-          const barX = width * 0.2;
-          const barY = height * 0.6;
-          ctx.beginPath();
-          ctx.roundRect(barX, barY, barWidth, barHeight, 12);
-          ctx.fill();
-          
-          // プログレスバー前景（進捗部分）
-          ctx.fillStyle = 'rgba(129, 140, 248, 0.9)';
-          const progressWidth = barWidth * ((100 - percentage) / 100);
-          ctx.beginPath();
-          ctx.roundRect(barX, barY, progressWidth, barHeight, 12);
-          ctx.fill();
-          
-          // 総回数情報
-          if (totalPossible !== null) {
-            const totalText = language === 'en' ? `Total ${totalPossible} times in lifetime` : 
-                          language === 'zh' ? `一生总共${totalPossible}次` : `生涯で合計${totalPossible}回`;
-            
-            ctx.font = 'normal 28px sans-serif';
-            ctx.textAlign = 'center';
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-            ctx.fillText(totalText, width / 2, height * 0.7);
-          }
-        }
-        
-        // ハッシュタグ
-        ctx.font = '24px sans-serif';
-        ctx.textAlign = 'right';
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
-        
-        const hashtag = language === 'en' ? '#HowManyTimesLeft' : 
-                        language === 'zh' ? '#还剩几次' : '#あと何回';
-        ctx.fillText(hashtag, width - 40, height - 40);
-        
-        // 画像をDataURLに変換して返す
-        try {
-          const dataUrl = canvas.toDataURL('image/png');
-          console.log('OgImage: Canvas image generated successfully', {
-            width: canvas.width,
-            height: canvas.height,
-            dataUrlLength: dataUrl.length
-          });
-          
-          if (dataUrl && dataUrl.length > 100) {
-            onImageGenerated(dataUrl);
-          } else {
-            console.error('OgImage: Invalid dataUrl generated');
-          }
-        } catch (err) {
-          console.error('OgImage: Error converting canvas to dataURL', err);
-          
-          // JPEGフォーマットで再試行
+        html2canvas(element, {
+          scale: options.scale || 2,
+          useCORS: options.useCORS || true,
+          backgroundColor: options.backgroundColor || '#ffffff',
+          logging: options.logging || true,
+          allowTaint: options.allowTaint || true,
+          foreignObjectRendering: options.foreignObjectRendering || true,
+        }).then(canvas => {
           try {
-            const jpegDataUrl = canvas.toDataURL('image/jpeg', 0.9);
-            console.log('OgImage: JPEG image generated as fallback', {
-              dataUrlLength: jpegDataUrl.length
-            });
-            onImageGenerated(jpegDataUrl);
-          } catch (jpegErr) {
-            console.error('OgImage: JPEG fallback also failed', jpegErr);
+            const dataUrl = canvas.toDataURL('image/png');
+            console.log(`OgImage: Image generated successfully. Canvas size: ${canvas.width}x${canvas.height}, dataUrl length: ${dataUrl.length}`);
+            onImageGenerated(dataUrl);
+          } catch (error) {
+            console.error('OgImage: Error converting canvas to data URL:', error);
           }
-        }
-      } catch (error) {
-        console.error('OgImage: Canvas rendering error', error);
+        }).catch(error => {
+          console.error('OgImage: Error generating image:', error);
+        });
+      } else {
+        console.error(`OgImage: Element with id "${elementId}" not found`);
       }
-    }
-  }, [count, activity, language, onImageGenerated, percentage, totalPossible]);
+    }, 200); // 200ms遅延
 
-  const getLanguageText = () => {
-    switch(language) {
-      case 'en': return `You can ${activity} ${count} more times.`;
-      case 'zh': return `你还能${activity}${count}次。`;
-      default: return `あと${count}回、${activity}ができる。`;
-    }
-  };
+    return () => clearTimeout(timeoutId);
+  }, [elementId, onImageGenerated, options, trigger]);
 
-  return (
-    <div className="hidden">
-      <canvas 
-        ref={canvasRef} 
-        width="1200" 
-        height="630"
-      />
-    </div>
-  );
-} 
+  return null;
+};
+
+export default OgImage; 
